@@ -6,9 +6,15 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using System;
 
+
 [RequireComponent(typeof(WorldGenerator))]
 [RequireComponent(typeof(WorldRenderer))]
+[RequireComponent(typeof(ColliderManager))]
 public class WorldController : MonoBehaviour {
+
+    private static WorldController instance;
+
+	private ColliderManager cMgr;
 
 	static string WORLD_SAVE_NAME = "worldSave.dat";
 	static int NULL_TILE = 0;
@@ -21,16 +27,31 @@ public class WorldController : MonoBehaviour {
 	void Start () {
 		wGen = GetComponent<WorldGenerator>();
 		wRend = GetComponent<WorldRenderer>();
+		cMgr = GetComponent<ColliderManager>();
+
+		if (instance == null) {
+			instance = this;
+		} else if (instance != this) {
+			Destroy(this.gameObject);
+		}
+
+		DontDestroyOnLoad(this.gameObject);
 	}
 	
 	void Update () {
 		
 	}
 
-	//World Save/Load functions
-	//-------------------------------------------------------------------------------
+    public static WorldController Instance {
+        get {
+            return instance;
+        }
+    }
 
-	[ContextMenu("Save World")]
+    //World Save/Load functions
+    //-------------------------------------------------------------------------------
+
+    [ContextMenu("Save World")]
 	public void SaveWorld() {
 		Debug.Log("Saving World...");
 		BinaryFormatter bf = new BinaryFormatter ();
