@@ -128,7 +128,7 @@ public class TerrainRenderer : MonoBehaviour {
 		if (currentTerrain == null) {
 			return null;
 		}
-		int terrainChunkWidth = currentTerrain.GetLength(0)/chunkSize;
+		//int terrainChunkWidth = currentTerrain.GetLength(0)/chunkSize;
 
 
 		int[] chunksShowing = GetArrFromList(showingChunks);

@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class WorldGenerator : MonoBehaviour {
 
-	public int width = 10;
-	public int height = 10;
+	//public int width = 10;
+	//public int height = 10;
 
 	public int interval = 1;
 	public float reduction = 0.5f;
@@ -24,6 +24,10 @@ public class WorldGenerator : MonoBehaviour {
 		PerlinNoiseSmooth(newWorld, Time.time, reduction, interval);
 		return newWorld;
 	}
+
+	//public int[,] GetNewPerlinWorld() {
+	//	return GetNewPerlinWorld(width, height);
+	//}
 
 	public static int[,] GenerateArray(int width, int height, bool empty) {
 		int[,] map = new int[width,height];

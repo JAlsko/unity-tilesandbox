@@ -1,88 +1,126 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(WorldController))]
 public class WorldCollider : MonoBehaviour
 {
-    void Start()
-    {
-        // Stop if no mesh filter exists or there's already a collider
-        if (GetComponent<PolygonCollider2D>() || GetComponent<MeshFilter>() == null) {
-            Debug.Log("Canceling collider generation");
-            return;
-        }
+    public GameObject colliderParent;
+    int smallSearchRadius = 1;
 
-        // Get triangles and vertices from mesh
-        int[] triangles = GetComponent<MeshFilter>().mesh.triangles;
-        Vector3[] vertices = GetComponent<MeshFilter>().mesh.vertices;
+    Dictionary<int, BoxCollider2D> chunkCols = new Dictionary<int, BoxCollider2D>();
 
-        // Get just the outer edges from the mesh's triangles (ignore or remove any shared edges)
-        Dictionary<string, KeyValuePair<int, int>> edges = new Dictionary<string, KeyValuePair<int, int>>();
-        for (int i = 0; i < triangles.Length; i += 3) {
-            for (int e = 0; e < 3; e++) {
-                int vert1 = triangles[i + e];
-                int vert2 = triangles[i + e + 1 > i + 2 ? i : i + e + 1];
-                string edge = Mathf.Min(vert1, vert2) + ":" + Mathf.Max(vert1, vert2);
-                if (edges.ContainsKey(edge)) {
-                    edges.Remove(edge);
-                } else {
-                    edges.Add(edge, new KeyValuePair<int, int>(vert1, vert2));
-                }
-            }
-        }
+    private WorldController wCon;
+    private WorldRenderer wRend;
 
-        // Create edge lookup (Key is first vertex, Value is second vertex, of each edge)
-        Dictionary<int, int> lookup = new Dictionary<int, int>();
-        foreach (KeyValuePair<int, int> edge in edges.Values) {
-            if (lookup.ContainsKey(edge.Key) == false) {
-                lookup.Add(edge.Key, edge.Value);
-            }
-        }
-
-        // Create empty polygon collider
-        PolygonCollider2D polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
-        polygonCollider.pathCount = 0;
-
-        // Loop through edge vertices in order
-        int startVert = 0;
-        int nextVert = startVert;
-        int highestVert = startVert;
-        List<Vector2> colliderPath = new List<Vector2>();
-        while (true) {
-
-            // Add vertex to collider path
-            colliderPath.Add(vertices[nextVert]);
-
-            // Get next vertex
-            nextVert = lookup[nextVert];
-
-            // Store highest vertex (to know what shape to move to next)
-            if (nextVert > highestVert) {
-                highestVert = nextVert;
-            }
-
-            // Shape complete
-            if (nextVert == startVert) {
-
-                // Add path to polygon collider
-                polygonCollider.pathCount++;
-                polygonCollider.SetPath(polygonCollider.pathCount - 1, colliderPath.ToArray());
-                colliderPath.Clear();
-
-                // Go to next shape if one exists
-                if (lookup.ContainsKey(highestVert + 1)) {
-
-                    // Set starting and next vertices
-                    startVert = highestVert + 1;
-                    nextVert = startVert;
-
-                    // Continue to next loop
-                    continue;
-                }
-
-                // No more verts
-                break;
-            }
-        }
-        Debug.Log("Done");
+    void Start() {
+        wCon = GetComponent<WorldController>();
+        wRend = GetComponent<WorldRenderer>();
     }
+
+    //High Level Collider Functions
+    //-------------------------------------------------------------------------------
+        //Function for regenerating colliders for an entire chunk
+        public void GenerateChunkColliders(GameObject chunkObj, int[,] world, int x, int y) {
+            if (world == null) {
+                Debug.LogError("Can't generate colliders - empty world!");
+            }
+
+            int chunkSize = WorldController.chunkSize;
+            for (int i = y; i < y+chunkSize; i++) {
+                for (int j = x; j < x+chunkSize; j++) {
+                    if (isTileOpen(world, j, i)) {
+                        GenerateSingleCollider(chunkObj, j-x, i-y, j, i);
+                    }
+                    else {
+                        RemoveSingleCollider(chunkObj, j-x, i-y, j, i);
+                    }
+                }
+            }
+            
+        }
+        
+        //Simplified version of above function
+        public void GenerateChunkColliders(int chunk, int[,] world) {
+            GameObject chunkObj = wRend.GetChunkObject(chunk);
+            Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+            GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
+        }
+
+        //Function for regenerating colliders for one tile and its adjacent tiles
+        public void GenerateTileColliders(int[,] world, int x, int y) {
+            for (int i = y-smallSearchRadius; i < y+smallSearchRadius; i++) {
+                for (int j = x-smallSearchRadius; j < x+smallSearchRadius; j++) {
+                    int chunk = wCon.GetChunk(j, i);
+                    GameObject chunkObj = wRend.GetChunkObject(chunk);
+                    Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+                    int inChunkX = j - chunkPos.x;
+                    int inChunkY = i - chunkPos.y;
+
+                    if (isTileOpen(world, j, i)) {
+                        GenerateSingleCollider(chunkObj, inChunkX, inChunkY, j, i);
+                    } else {
+                        RemoveSingleCollider(chunkObj, inChunkX, inChunkY, j, i);
+                    }
+                }
+            }
+        }
+    //
+
+    //Low Level Collider Functions
+    //-------------------------------------------------------------------------------
+        //Generates a collider for one tile only
+        void GenerateSingleCollider(GameObject colliderParent, int x, int y, int realX, int realY) {
+            Vector2Int pos = new Vector2Int(realX, realY);
+            int posHash = HashableInt(pos);
+            if (chunkCols.ContainsKey(posHash)) {
+                return;
+            }
+            BoxCollider2D newCol = colliderParent.AddComponent<BoxCollider2D>();
+            newCol.size = Vector2.one;
+            newCol.offset = new Vector2(x + .5f, y + .5f);
+            chunkCols[posHash] = newCol;
+        }
+
+        //Removes a collider for one tile only
+        void RemoveSingleCollider(GameObject colliderParent, int x, int y, int realX, int realY) {
+            Vector2Int pos = new Vector2Int(realX, realY);
+            int posHash = HashableInt(pos);
+            if (!chunkCols.ContainsKey(posHash)) {
+                return;
+            }
+            Destroy(chunkCols[posHash]);
+            chunkCols.Remove(posHash);
+        }
+
+        //Checks a tile's adjacent tiles to see if it's at all open (in order to determine if it needs a collider)
+        bool isTileOpen(int[,] world, int x, int y) {
+            if (x > world.GetUpperBound(0) || x < world.GetLowerBound(0) || y > world.GetUpperBound(1) || y < world.GetLowerBound(1)) {
+                return false;
+            }
+            if (world[x,y] == 0) {
+                return false;
+            }
+
+            for (int i = x-1; i < x+2; i++) {
+                for (int j = y-1; j < y+2; j++) {
+                    if (world[i,j] == 0) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    //
+
+    //Helper Functions
+    //-------------------------------------------------------------------------------
+        //Helper function to convert a Vector2 to an integer (for collider dictionary)
+        static int HashableInt(Vector2Int vector)
+        {
+            int x = Mathf.RoundToInt(vector.x);
+            int y = Mathf.RoundToInt(vector.y);
+            return x * 1000 + y * 1000000;
+        }
+    //
 }

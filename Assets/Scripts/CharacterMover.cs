@@ -29,6 +29,7 @@ public class CharacterMover : MonoBehaviour {
 	}
 
 	public void Jump() {
+		rbody.velocity = Vector2.zero;
 		rbody.AddForce(Vector2.up * jumpForce);
 		AnimJump();
 	}
