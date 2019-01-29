@@ -29,6 +29,8 @@ public class RuleTileManager : MonoBehaviour
     //Keeps track of texture pack status
     private bool texturesPacked = false;
 
+    private WorldRenderer wRend;
+
     //Array of rotated indices for tile neighbors and uv coordinates
     private static readonly int[,] AngledNeighborIndices =
     {
@@ -46,10 +48,7 @@ public class RuleTileManager : MonoBehaviour
 
     void Start()
     {
-        //Initialize atlas texture with our specifications, and then pack textures into it
-        atlasTex = new Texture2D(maxAtlasSize, maxAtlasSize, TextureFormat.ARGB32, false);
-        atlasTex.filterMode = FilterMode.Point;
-        PackRuleTileTextures();
+        wRend = GetComponent<WorldRenderer>();
     }
 
     void Update()
@@ -59,6 +58,37 @@ public class RuleTileManager : MonoBehaviour
 
     //Public methods
     //-------------------------------------------------------------------------------
+        //Main texture packer
+        public void PackRuleTileTextures() {
+            //Initialize atlas texture with our specifications, and then pack textures into it
+            atlasTex = new Texture2D(maxAtlasSize, maxAtlasSize, TextureFormat.ARGB32, false);
+            atlasTex.filterMode = FilterMode.Point;
+            
+            int ruleTileIndex = 0;
+            foreach (RuleTile rt in allTiles) {
+                if (rt == null) {
+                    Debug.Log("Null rule tile at index " + ruleTileIndex);
+                    return;
+                }
+
+                foreach (RuleTile.TilingRule tr in rt.m_TilingRules) {
+                    int spriteIndex = 0;
+                    foreach (Texture2D sprite in tr.m_Sprites) {
+                        int spriteCount = texturesToPackList.Count;
+                        tr.m_SpriteAtlasIndices[spriteIndex] = spriteCount;
+                        texturesToPackList.Add(sprite);
+                        spriteIndex++;
+                    }
+                }
+                ruleTileIndex++;
+            }
+
+            texturesToPack = texturesToPackList.ToArray();
+            uv_coords = atlasTex.PackTextures(texturesToPack, 0, 2048, false);
+            tileMaterial.SetTexture("_MainTex", atlasTex);
+            texturesPacked = true;
+        }
+
         //Public getter method for getting final UV coordinates for tile based on existing rules
         public Vector2[] GetTileUV(int[,] world, int x, int y) {
             if (!texturesPacked) {
@@ -102,7 +132,7 @@ public class RuleTileManager : MonoBehaviour
         }
 
         //Using angle and UV-Texture index, get appropriate texture uv coordinates for specific tile texture
-        public Vector2[] GetUVCoords(int textureIndex, int angle) {
+        Vector2[] GetUVCoords(int textureIndex, int angle) {
             Rect uv_rect = uv_coords[textureIndex];
             Vector2[] actualCoords = new Vector2[4];
 
@@ -116,39 +146,12 @@ public class RuleTileManager : MonoBehaviour
             return actualCoords;
         }
 
-        public Vector2[] GetUVCoords(int textureIndex) {
+        Vector2[] GetUVCoords(int textureIndex) {
             return GetUVCoords(textureIndex, 0);
         }
 
-        [ContextMenu("PackRuleTileTextures")]
-        public void PackRuleTileTextures() {
-            int ruleTileIndex = 0;
-            foreach (RuleTile rt in allTiles) {
-                if (rt == null) {
-                    Debug.Log("Null rule tile at index " + ruleTileIndex);
-                    return;
-                }
-
-                foreach (RuleTile.TilingRule tr in rt.m_TilingRules) {
-                    int spriteIndex = 0;
-                    foreach (Texture2D sprite in tr.m_Sprites) {
-                        int spriteCount = texturesToPackList.Count;
-                        tr.m_SpriteAtlasIndices[spriteIndex] = spriteCount;
-                        texturesToPackList.Add(sprite);
-                        spriteIndex++;
-                    }
-                }
-                ruleTileIndex++;
-            }
-
-            texturesToPack = texturesToPackList.ToArray();
-            uv_coords = atlasTex.PackTextures(texturesToPack, 0, 2048, false);
-            tileMaterial.SetTexture("_MainTex", atlasTex);
-            texturesPacked = true;
-        }
-
         //Method for getting array of properly indexed array of neighbors of a tile
-        public int[] GetNeighbors(int[,] world, int x, int y) {
+        int[] GetNeighbors(int[,] world, int x, int y) {
                 int neighborIndex = 0;
                 int[] neighbors = new int[8];
                 for (int i = 1; i >= -1; i--) {

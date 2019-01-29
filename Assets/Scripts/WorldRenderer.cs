@@ -44,7 +44,7 @@ public class WorldRenderer : MonoBehaviour {
 	//Chunk Object Functions
 	//-------------------------------------------------------------------------------
 		//Called once at start to fill chunk objects array with default chunks
-		void InitializeChunkObjects(int[,] world) {
+		public void InitializeChunkObjects(int[,] world) {
 			int chunkSize = WorldController.chunkSize;
 			int worldWidth = world.GetUpperBound(0)+1;
 			int worldHeight = world.GetUpperBound(1)+1;

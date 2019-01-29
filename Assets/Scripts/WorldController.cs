@@ -12,6 +12,7 @@ using System;
 [RequireComponent(typeof(WorldRenderer))]
 [RequireComponent(typeof(WorldCollider))]
 [RequireComponent(typeof(ColliderManager))]
+[RequireComponent(typeof(RuleTileManager))]
 public class WorldController : MonoBehaviour {
 
     private static WorldController instance;
@@ -25,6 +26,7 @@ public class WorldController : MonoBehaviour {
 	WorldGenerator wGen;
 	WorldRenderer wRend;
 	WorldCollider wCol;
+	RuleTileManager rtm;
 
 	public Transform player;
 
@@ -34,6 +36,9 @@ public class WorldController : MonoBehaviour {
 
 	//Width/height of each chunk
 	public const int chunkSize = 64;
+
+	//Total number of chunks in world
+	public int totalChunks;
 
 	//Lists to track which chunks are currently showing/hidden
 	public List<int> hiddenChunks;
@@ -50,10 +55,14 @@ public class WorldController : MonoBehaviour {
 	public int chunkRenderRadius = 1;
 	int chunkRenderDiameter;
 
+	//Switch once world initialized
+	bool worldInitialized = false;
+
 	void Start () {
 		wGen = GetComponent<WorldGenerator>();
 		wRend = GetComponent<WorldRenderer>();
 		wCol = GetComponent<WorldCollider>();
+		rtm = GetComponent<RuleTileManager>();
 
 		if (instance == null) {
 			instance = this;
@@ -72,20 +81,26 @@ public class WorldController : MonoBehaviour {
 			worldHeight = chunkSize;
 		}
 
+		totalChunks = (worldWidth/chunkSize) * (worldHeight/chunkSize);
+
 		//Load world on start
 		//LoadWorld();
 
 		//Initialize chunkTiles temp array
 		chunkTiles = new int[chunkSize, chunkSize];
 
-		//Final check to make sure world isn't empty
-		CheckIfWorldExists();
-
 		//Variable to avoid doing radius->diameter calculation repeatedly
 		chunkRenderDiameter = (chunkRenderRadius*2)+1;
+
+		//Generate Colliders -> Evaluate Rule Tiles -> Render Tiles
+		StartupWorld();
 	}
 	
 	void FixedUpdate () {
+		if (!worldInitialized) {
+			return;
+		}
+
 		GetCurrentChunk();
 	}
 
@@ -94,6 +109,39 @@ public class WorldController : MonoBehaviour {
             return instance;
         }
     }
+
+	//World Initialization Functions
+	//-------------------------------------------------------------------------------
+		void StartupWorld() {
+			CheckIfWorldExists();
+			PlacePlayer();
+			PackTextures();
+			GenerateColliders();
+			RenderWorld();
+			worldInitialized = true;
+		}
+
+		void PlacePlayer() {
+			player.position = (Vector3.up * (worldHeight + chunkSize/2));
+		}
+
+		void PackTextures() {
+			rtm.PackRuleTileTextures();
+		}
+
+		void GenerateColliders() {
+			for (int chunk = 0; chunk < totalChunks; chunk++) {
+				Vector2Int chunkPos = GetChunkPosition(chunk);
+				GameObject chunkObj = wRend.GetChunkObject(chunk);
+				wCol.GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
+			}
+		}
+
+		void RenderWorld() {
+			wRend.RenderAllChunks();
+			UpdateCulledChunks();
+		}
+	//
 
     //World Save/Load Functions
     //-------------------------------------------------------------------------------
@@ -136,10 +184,6 @@ public class WorldController : MonoBehaviour {
 			RenderWorld();
 		}
 
-		private void RenderWorld() {
-			wRend.RenderAllChunks();
-		}
-
 		public int[,] GetWorld() {
 			CheckIfWorldExists();
 			return world;
@@ -153,9 +197,8 @@ public class WorldController : MonoBehaviour {
 		public void CheckIfWorldExists() {
 			if (world == null) {
 				Debug.Log("Null world! Generating new one!");
-				//world = wGen.GetNewPerlinWorld(worldWidth, worldHeight);
 				world = wGen.GetNewFractalWorld(worldWidth, worldHeight);
-				RenderWorld();
+				wRend.InitializeChunkObjects(world);
 			}
 		}
 
