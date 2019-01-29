@@ -33,7 +33,7 @@ public class WorldController : MonoBehaviour {
 	public int worldHeight = 0;
 
 	//Width/height of each chunk
-	public const int chunkSize = 8;
+	public const int chunkSize = 64;
 
 	//Lists to track which chunks are currently showing/hidden
 	public List<int> hiddenChunks;
@@ -73,7 +73,7 @@ public class WorldController : MonoBehaviour {
 		}
 
 		//Load world on start
-		LoadWorld();
+		//LoadWorld();
 
 		//Initialize chunkTiles temp array
 		chunkTiles = new int[chunkSize, chunkSize];
@@ -149,10 +149,13 @@ public class WorldController : MonoBehaviour {
 	//Chunk Handling
 	//-------------------------------------------------------------------------------
 
-		void CheckIfWorldExists() {
+		[ContextMenu("CheckIfWorldExists")]
+		public void CheckIfWorldExists() {
 			if (world == null) {
 				Debug.Log("Null world! Generating new one!");
-				world = wGen.GetNewPerlinWorld(worldWidth, worldHeight);
+				//world = wGen.GetNewPerlinWorld(worldWidth, worldHeight);
+				world = wGen.GetNewFractalWorld(worldWidth, worldHeight);
+				RenderWorld();
 			}
 		}
 
@@ -279,7 +282,7 @@ public class WorldController : MonoBehaviour {
 			//Debug.Log("Chunks to hide: " + ArrToString(chunksToHide));
 			//Debug.Log("Chunks to show: " + ArrToString(chunksToShow));
 
-			wRend.RenderChunks(world, chunksToShow, chunksToHide);
+			wRend.RenderChunks(chunksToShow, chunksToHide);
 
 			showingChunks = GetListFromArr(oldChunksToShow);
 		}

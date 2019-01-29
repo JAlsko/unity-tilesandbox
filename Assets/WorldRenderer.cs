@@ -12,6 +12,7 @@ public class UVTile {
 
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(WorldCollider))]
+[RequireComponent(typeof(RuleTileManager))]
 public class WorldRenderer : MonoBehaviour {
 	//UV coords for each tile type
 	public List<UVTile> tileBases = new List<UVTile>();
@@ -19,6 +20,7 @@ public class WorldRenderer : MonoBehaviour {
 	//Other neccessary world scripts
 	private WorldController wCon;
 	private WorldCollider wCol;
+	private RuleTileManager rMgr;
 
 	//World array (gets updated by world controller)
 	int[,] world;
@@ -34,6 +36,7 @@ public class WorldRenderer : MonoBehaviour {
 	void Start() {
 		wCon = GetComponent<WorldController>();
 		wCol = GetComponent<WorldCollider>();
+		rMgr = GetComponent<RuleTileManager>();
 
 		chunkObjs = new GameObject[0];
 	}
@@ -69,7 +72,8 @@ public class WorldRenderer : MonoBehaviour {
 	//Render Functions
 	//-------------------------------------------------------------------------------
 		//Public function to handle showing/hiding new chunks
-		public void RenderChunks(int[,] world, int[] chunksToRender, int[] chunksToHide) {
+		public void RenderChunks(int[] chunksToRender, int[] chunksToHide) {
+			world = wCon.GetWorld();
 			if (chunkObjs.Length <= 0) {
 				InitializeChunkObjects(world);
 			}
@@ -105,6 +109,9 @@ public class WorldRenderer : MonoBehaviour {
 
 		//Function for updated rendering of one chunk
 		public void RenderChunk(int chunk) {
+			//RuleTile rt = ruleTiles[world[x,y]]
+			//Vector2Int[] uv_coords = rt.analyze(world, x, y)
+
 			int[,] chunkTiles = wCon.GetChunkTiles(chunk);
 
 			int chunkSize = WorldController.chunkSize;
@@ -156,9 +163,18 @@ public class WorldRenderer : MonoBehaviour {
 					normals[vertexIndex+3] = Vector3.back;
 
 					//Connect UVTile coords to uv array
-					UVTile currentTile = tileBases[chunkTiles[(int)x,(int)y]];
-					for (int i = 0; i < 4; i++) {
-						uv[vertexIndex+i] = currentTile.uv_coords[i];
+					if (rMgr.AreTexturesPacked()) {
+						Vector2[] tileUVs = rMgr.GetTileUV(chunkTiles, (int)x, (int)y);
+						for (int i = 0; i < 4; i++) {
+							uv[vertexIndex+i] = tileUVs[i];
+						}
+					}
+					
+					else {
+						UVTile currentTile = tileBases[chunkTiles[(int)x,(int)y]];
+						for (int i = 0; i < 4; i++) {
+							uv[vertexIndex+i] = currentTile.uv_coords[i];
+						}
 					}
 
 					//On next tile, skip past current 4 vertices and current 6 triangle vertices (and increment tile index)

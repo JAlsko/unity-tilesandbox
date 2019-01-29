@@ -103,6 +103,10 @@ public class WorldCollider : MonoBehaviour
 
             for (int i = x-1; i < x+2; i++) {
                 for (int j = y-1; j < y+2; j++) {
+                    if (i > world.GetUpperBound(0) || i < world.GetLowerBound(0) || j > world.GetUpperBound(1) || j < world.GetLowerBound(1)) {
+                        return true;
+                    }       
+
                     if (world[i,j] == 0) {
                         return true;
                     }
