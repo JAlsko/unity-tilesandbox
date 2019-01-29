@@ -14,10 +14,60 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_DefaultSprite: {fileID: 2800000, guid: abe7c2de11fe3ed479feb4c366957f74, type: 3}
   m_TilingRules:
-  - m_Neighbors: 0000000002000000000000000000000000000000000000000000000000000000
+  - m_Neighbors: 0000000002000000000000000100000001000000000000000100000000000000
     m_Sprites:
     - {fileID: 2800000, guid: 14f696bb2a73666438e3a32489621e95, type: 3}
-    m_SpriteAtlasIndices: 04000000
+    m_SpriteAtlasIndices: 0f000000
+    m_GameObject: {fileID: 0}
+    m_AnimationSpeed: 1
+    m_PerlinScale: 0.5
+    m_RuleTransform: 1
+    m_Output: 0
+    m_RandomTransform: 0
+  - m_Neighbors: 0000000001000000000000000100000001000000000000000100000000000000
+    m_Sprites:
+    - {fileID: 2800000, guid: abe7c2de11fe3ed479feb4c366957f74, type: 3}
+    m_SpriteAtlasIndices: 10000000
+    m_GameObject: {fileID: 0}
+    m_AnimationSpeed: 1
+    m_PerlinScale: 0.5
+    m_RuleTransform: 1
+    m_Output: 0
+    m_RandomTransform: 0
+  - m_Neighbors: 0000000002000000000000000200000002000000000000000100000000000000
+    m_Sprites:
+    - {fileID: 2800000, guid: 12af31c7d91dd8242a13c09b1fc549e7, type: 3}
+    m_SpriteAtlasIndices: 11000000
+    m_GameObject: {fileID: 0}
+    m_AnimationSpeed: 1
+    m_PerlinScale: 0.5
+    m_RuleTransform: 1
+    m_Output: 0
+    m_RandomTransform: 0
+  - m_Neighbors: 0000000002000000000000000200000001000000000000000100000000000000
+    m_Sprites:
+    - {fileID: 2800000, guid: f857202658abe41499293cff94a4e45c, type: 3}
+    m_SpriteAtlasIndices: 12000000
+    m_GameObject: {fileID: 0}
+    m_AnimationSpeed: 1
+    m_PerlinScale: 0.5
+    m_RuleTransform: 1
+    m_Output: 0
+    m_RandomTransform: 0
+  - m_Neighbors: 0000000002000000000000000200000002000000000000000200000000000000
+    m_Sprites:
+    - {fileID: 2800000, guid: fbc44072a50e76c489c37f32b235a725, type: 3}
+    m_SpriteAtlasIndices: 13000000
+    m_GameObject: {fileID: 0}
+    m_AnimationSpeed: 1
+    m_PerlinScale: 0.5
+    m_RuleTransform: 1
+    m_Output: 0
+    m_RandomTransform: 0
+  - m_Neighbors: 0000000002000000000000000100000001000000000000000200000000000000
+    m_Sprites:
+    - {fileID: 2800000, guid: 0421b86296909f4449fca1fef0060477, type: 3}
+    m_SpriteAtlasIndices: 14000000
     m_GameObject: {fileID: 0}
     m_AnimationSpeed: 1
     m_PerlinScale: 0.5
@@ -26,11 +76,11 @@ MonoBehaviour:
     m_RandomTransform: 0
   - m_Neighbors: 0000000000000000000000000000000000000000000000000000000000000000
     m_Sprites:
-    - {fileID: 2800000, guid: abe7c2de11fe3ed479feb4c366957f74, type: 3}
-    m_SpriteAtlasIndices: 05000000
+    - {fileID: 2800000, guid: 5ffa976f7e8788e42958b29bb94a5443, type: 3}
+    m_SpriteAtlasIndices: 15000000
     m_GameObject: {fileID: 0}
     m_AnimationSpeed: 1
     m_PerlinScale: 0.5
-    m_RuleTransform: 1
+    m_RuleTransform: 0
     m_Output: 0
     m_RandomTransform: 0

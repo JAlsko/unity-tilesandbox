@@ -19,11 +19,19 @@ public class PlayerInput : MonoBehaviour {
 			transform.rotation = Quaternion.Euler(new Vector3(transform.rotation.x, 0, transform.rotation.z));
 		}*/
 
+		HandleMove();
+
+		HandleClick();
+	}
+
+	void HandleMove() {
 		cMov.Move(Input.GetAxis("Horizontal"));
 		if (Input.GetKeyDown(KeyCode.Space)) {
 			cMov.Jump();
 		}
+	}
 
+	void HandleClick() {
 		if (Input.GetKeyDown(KeyCode.Mouse0)) {
 			Vector3 mousePos = PlayerMouseInput.Instance.GetMousePos();
 			WorldController.Instance.RemoveTile((int)mousePos.x, (int)mousePos.y);

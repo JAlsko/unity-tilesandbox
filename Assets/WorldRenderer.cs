@@ -118,6 +118,8 @@ public class WorldRenderer : MonoBehaviour {
 
 			int vertexCount = chunkSize * chunkSize * 4;
 
+			Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+
 			GameObject chunkObj = chunkObjs[chunk];
 
 			if (!chunkObj.GetComponent<MeshFilter>()) {
@@ -164,9 +166,10 @@ public class WorldRenderer : MonoBehaviour {
 
 					//Connect UVTile coords to uv array
 					if (rMgr.AreTexturesPacked()) {
-						Vector2[] tileUVs = rMgr.GetTileUV(chunkTiles, (int)x, (int)y);
+						Vector2[] tileUVs = rMgr.GetTileUV(world, (int)x + chunkPos.x, (int)y + chunkPos.y);
 						for (int i = 0; i < 4; i++) {
-							uv[vertexIndex+i] = tileUVs[i];
+							Vector2 tileUV = tileUVs[i];
+							uv[vertexIndex+i] = tileUV;
 						}
 					}
 					
@@ -200,7 +203,6 @@ public class WorldRenderer : MonoBehaviour {
 
 			ShowChunk(chunk);
 
-			Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
 			wCol.GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
 		}
 
