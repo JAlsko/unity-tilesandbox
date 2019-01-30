@@ -9,10 +9,14 @@ public class CameraFollow : MonoBehaviour {
 	public bool followY = true;
 	Vector3 offset;
 	Vector3 origin;
+
+	public Vector2 xBounds;
+	public Vector2 yBounds;
 	
 	void Start () {
 		origin = transform.position;
 		offset = transform.position - toFollow.position;
+		transform.parent = null;
 	}
 	
 	void LateUpdate () {
@@ -24,13 +28,21 @@ public class CameraFollow : MonoBehaviour {
 		if (!followX) {
 			newX = origin.x;
 		} else {
-			newX = newPos.x;
+			if (newPos.x >= xBounds.x && newPos.x <= xBounds.y) {
+				newX = newPos.x;
+			} else {
+				newX = transform.position.x;
+			}
 		}
 
 		if (!followY) {
 			newY = origin.y;
 		} else {
-			newY = newPos.y;
+			if (newPos.y >= yBounds.x && newPos.y <= yBounds.y) {
+				newY = newPos.y;
+			} else {
+				newY = transform.position.y;
+			}
 		}
 
 		transform.position = new Vector3(newX, newY, newPos.z);
