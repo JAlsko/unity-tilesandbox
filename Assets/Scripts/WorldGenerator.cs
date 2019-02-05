@@ -44,14 +44,33 @@ public class WorldGenerator : MonoBehaviour {
 
 	public static int[,] GenerateArray(int width, int height, bool empty) {
 		int[,] map = new int[width,height];
-		for (int x = 0; x < map.GetUpperBound(0); x++) {
-			for (int y = 0; y < map.GetUpperBound(1); y++) {
+		for (int x = 0; x <= map.GetUpperBound(0); x++) {
+			for (int y = 0; y <= map.GetUpperBound(1); y++) {
 				if (empty)
 					map[x,y] = 0;
 				else
 					map[x,y] = 1;
 			}
 		}
+		return map;
+	}
+
+	public static float[,] GenerateArray(int width, int height) {
+		float[,] map = new float[width,height];
+		for (int x = 0; x <= map.GetUpperBound(0); x++) {
+			for (int y = 0; y <= map.GetUpperBound(1); y++) {
+				map[x,y] = 0;
+			}
+		}
+		return map;
+	}
+
+	public static int[] GenerateArray(int length) {
+		int[] map = new int[length];
+		for (int i = 0; i < map.Length; i++) {
+			map[i] = 0;
+		}
+
 		return map;
 	}
 
@@ -62,11 +81,19 @@ public class WorldGenerator : MonoBehaviour {
 			int heightVal = (int)((map.GetUpperBound(1)+1)/2 + heightMap[x]*(map.GetUpperBound(1)+1)/3);
 			for (int y = 0; y < map.GetUpperBound(1)+1; y++) {
 				if (y > heightVal) {
-					map[x, y] = 0;
+					if (UnityEngine.Random.Range(0, 360) < 1) {
+						map[x, y] = 3;
+					} else {
+						map[x, y] = 0;
+					}
 				} else if (y == heightVal) {
 					map[x, y] = 1;
 				} else {
-					map[x, y] = 2;
+					if (UnityEngine.Random.Range(0, 75) < 1) {
+						map[x, y] = 3;
+					} else {
+						map[x, y] = 2;
+					}
 				}
 			}
 		}

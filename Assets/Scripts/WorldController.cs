@@ -12,7 +12,8 @@ using System;
 [RequireComponent(typeof(WorldRenderer))]
 [RequireComponent(typeof(WorldCollider))]
 [RequireComponent(typeof(ColliderManager))]
-[RequireComponent(typeof(RuleTileManager))]
+[RequireComponent(typeof(TileManager))]
+[RequireComponent(typeof(LightMapper))]
 public class WorldController : MonoBehaviour {
 
     private static WorldController instance;
@@ -26,7 +27,8 @@ public class WorldController : MonoBehaviour {
 	WorldGenerator wGen;
 	WorldRenderer wRend;
 	WorldCollider wCol;
-	RuleTileManager rtm;
+	TileManager rtm;
+	LightMapper lMap;
 
 	public Transform player;
 
@@ -62,7 +64,8 @@ public class WorldController : MonoBehaviour {
 		wGen = GetComponent<WorldGenerator>();
 		wRend = GetComponent<WorldRenderer>();
 		wCol = GetComponent<WorldCollider>();
-		rtm = GetComponent<RuleTileManager>();
+		rtm = GetComponent<TileManager>();
+		lMap = GetComponent<LightMapper>();
 
 		if (instance == null) {
 			instance = this;
@@ -118,6 +121,7 @@ public class WorldController : MonoBehaviour {
 			PackTextures();
 			GenerateColliders();
 			RenderWorld();
+			GenerateLightMap();
 			worldInitialized = true;
 		}
 
@@ -140,6 +144,10 @@ public class WorldController : MonoBehaviour {
 		void RenderWorld() {
 			wRend.RenderAllChunks();
 			UpdateCulledChunks();
+		}
+
+		void GenerateLightMap() {
+			lMap.SampleAllLights(world);
 		}
 	//
 
@@ -206,6 +214,19 @@ public class WorldController : MonoBehaviour {
 		int GetWorldChunkWidth(int[,] world) {
 			CheckIfWorldExists();
 			return (world.GetUpperBound(0)+1)/chunkSize;
+		}
+
+		//Function to get number of chunks in an entire world column
+		int GetWorldChunkHeight(int[,] world) {
+			CheckIfWorldExists();
+			return (world.GetUpperBound(1)+1)/chunkSize;
+		}
+
+		//Public function to get total number of chunks
+		public int GetChunkCount() {
+			int worldChunkWidth = GetWorldChunkWidth(world);
+			int worldChunkHeight = GetWorldChunkHeight(world);
+			return worldChunkWidth * worldChunkHeight;
 		}
 
 		//Update function to keep track of player's current chunk
@@ -342,6 +363,10 @@ public class WorldController : MonoBehaviour {
 
 			//Re-render tile's chunk
 			wRend.RenderChunk(chunkToModify);
+
+			//Re-render tile's lightmap
+			Tile newTileObj = rtm.allTiles[newTile];
+			lMap.SampleUpdatedTile(world, x, y, newTileObj);
 			
 			//Update tile's chunk's collider (doesn't update relevant colliders in other chunks)
 			//wCol.GenerateChunkColliders(chunkToModify, world);
@@ -372,6 +397,11 @@ public class WorldController : MonoBehaviour {
 			}
 
 			ModifyTile(x, y, newTile);
+		}
+
+		//Public tile/nontile check-er method
+		public bool isTile(int x, int y) {
+			return world[x, y] != 0;
 		}
 
 	//

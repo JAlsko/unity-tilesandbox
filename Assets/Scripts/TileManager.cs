@@ -5,10 +5,16 @@ using UnityEngine.Serialization;
 using System;
 using UnityEngine.Tilemaps;
 
-public class RuleTileManager : MonoBehaviour
+[Serializable]
+public class Tile {
+    public RuleTile tileBase;
+    public float lightVal;
+}
+
+public class TileManager : MonoBehaviour
 {
     //List of rule tile assets corresponding to integer tile indices
-    public List<RuleTile> allTiles = new List<RuleTile>();
+    public List<Tile> allTiles = new List<Tile>();
 
     //Array and list of total textures to pack to atlas (List converted to array on PackTexture call)
     public Texture2D[] texturesToPack;
@@ -65,13 +71,13 @@ public class RuleTileManager : MonoBehaviour
             atlasTex.filterMode = FilterMode.Point;
             
             int ruleTileIndex = 0;
-            foreach (RuleTile rt in allTiles) {
-                if (rt == null) {
+            foreach (Tile tile in allTiles) {
+                if (tile == null) {
                     Debug.Log("Null rule tile at index " + ruleTileIndex);
                     return;
                 }
 
-                foreach (RuleTile.TilingRule tr in rt.m_TilingRules) {
+                foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                     int spriteIndex = 0;
                     foreach (Texture2D sprite in tr.m_Sprites) {
                         int spriteCount = texturesToPackList.Count;
@@ -96,9 +102,9 @@ public class RuleTileManager : MonoBehaviour
                 return null;
             }
 
-            RuleTile rt = allTiles[world[x,y]];
+            Tile tile = allTiles[world[x,y]];
             int[] neighbors = GetNeighbors(world, x, y);
-            foreach (RuleTile.TilingRule tr in rt.m_TilingRules) {
+            foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                 int matchedAngle = CheckRule(tr, neighbors);
                 if (matchedAngle != -1) {
                     return GetCoordsFromRule(tr, matchedAngle);
@@ -111,6 +117,10 @@ public class RuleTileManager : MonoBehaviour
         //Public getter method to check texture pack status
         public bool AreTexturesPacked() {
             return texturesPacked;
+        }
+
+        public Tile GetTile(int index) {
+            return allTiles[index];
         }
 
     //

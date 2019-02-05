@@ -120,11 +120,27 @@ public class WorldCollider : MonoBehaviour
     //Helper Functions
     //-------------------------------------------------------------------------------
         //Helper function to convert a Vector2 to an integer (for collider dictionary)
-        static int HashableInt(Vector2Int vector)
+        public static int HashableInt(Vector2Int vector)
         {
             int x = Mathf.RoundToInt(vector.x);
             int y = Mathf.RoundToInt(vector.y);
             return x * 1000 + y * 1000000;
+        }
+
+        public static int HashableInt(int x, int y)
+        {
+            return x * 1000 + y * 1000000;
+        }
+
+        public static Vector2Int UnhashInt(int hashedInt) {
+            /*if (hashedInt % 1000000 != 0) {
+                Debug.Log("Cant unhash int " + hashedInt + "!");
+                return Vector2Int.zero;
+            }*/
+
+            int yVal = hashedInt / 1000000;
+            int xVal = (hashedInt - (yVal * 1000000))/1000;
+            return new Vector2Int(xVal, yVal);
         }
     //
 }

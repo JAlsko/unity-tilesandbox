@@ -12,7 +12,7 @@ public class UVTile {
 
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(WorldCollider))]
-[RequireComponent(typeof(RuleTileManager))]
+[RequireComponent(typeof(TileManager))]
 public class WorldRenderer : MonoBehaviour {
 	//UV coords for each tile type
 	public List<UVTile> tileBases = new List<UVTile>();
@@ -20,7 +20,7 @@ public class WorldRenderer : MonoBehaviour {
 	//Other neccessary world scripts
 	private WorldController wCon;
 	private WorldCollider wCol;
-	private RuleTileManager rMgr;
+	private TileManager rMgr;
 
 	//World array (gets updated by world controller)
 	int[,] world;
@@ -32,13 +32,15 @@ public class WorldRenderer : MonoBehaviour {
 
 	//Array of existing chunk objects
 	GameObject[] chunkObjs;
+	MeshRenderer[] chunkLightmaps;
 
 	void Start() {
 		wCon = GetComponent<WorldController>();
 		wCol = GetComponent<WorldCollider>();
-		rMgr = GetComponent<RuleTileManager>();
+		rMgr = GetComponent<TileManager>();
 
 		chunkObjs = new GameObject[0];
+		chunkLightmaps = new MeshRenderer[0];
 	}
 
 	//Chunk Object Functions
@@ -50,6 +52,7 @@ public class WorldRenderer : MonoBehaviour {
 			int worldHeight = world.GetUpperBound(1)+1;
 
 			chunkObjs = new GameObject[worldWidth/chunkSize * worldHeight/chunkSize];
+			chunkLightmaps = new MeshRenderer[worldWidth/chunkSize * worldHeight/chunkSize];
 
 			//Initializing chunk object array
 			for (int chunk = 0; chunk < chunkObjs.Length; chunk++) {
@@ -61,6 +64,11 @@ public class WorldRenderer : MonoBehaviour {
 				newChunkObj.transform.rotation = Quaternion.identity;
 				newChunkObj.transform.localScale = Vector3.one;
 				chunkObjs[chunk] = newChunkObj;
+				
+				Transform chunkLightmapObj = newChunkObj.transform.Find("Lightmap");
+				chunkLightmapObj.localPosition = new Vector3(WorldController.chunkSize/2, WorldController.chunkSize/2, -1);
+				chunkLightmapObj.localScale = new Vector3(WorldController.chunkSize, WorldController.chunkSize, 1);
+				chunkLightmaps[chunk] = chunkLightmapObj.GetComponent<MeshRenderer>();
 			}
 		}
 
@@ -213,6 +221,10 @@ public class WorldRenderer : MonoBehaviour {
 
 		public void ShowChunk(int chunk) {
 			chunkObjs[chunk].SetActive(true);
+		}
+
+		public void RenderChunkLightmap(int chunk, Material lightmap_mat) {
+			chunkLightmaps[chunk].material = lightmap_mat;
 		}
 	//
 
