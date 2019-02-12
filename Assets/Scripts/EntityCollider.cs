@@ -15,7 +15,7 @@ public class EntityCollider : MonoBehaviour
     }
 
     void OnEnable() {
-        world = WorldController.Instance.world;
+        world = WorldController.Instance.world_fg;
         ColliderManager.Instance.AddCollider(this);
     }
 

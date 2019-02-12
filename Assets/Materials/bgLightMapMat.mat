@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: lightMapMat
+  m_Name: bgLightMapMat
   m_Shader: {fileID: 4800000, guid: 2be4c0a75c04a6d44bd95fc3fbedb4d6, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -59,7 +59,6 @@ Material:
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
-    - _Distance: 3
     - _DstBlend: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5

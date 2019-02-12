@@ -26,6 +26,17 @@ public class WorldGenerator : MonoBehaviour {
 		
 	}
 
+	public static int[,] Get2DArrayCopy(int[,] arrayToCopy) {
+		int[,] newArr = new int[arrayToCopy.GetUpperBound(0)+1, arrayToCopy.GetUpperBound(1)+1];
+		for (int x = 0; x <= newArr.GetUpperBound(0); x++) {
+			for (int y = 0; y <= newArr.GetUpperBound(1); y++) {
+				newArr[x, y] = arrayToCopy[x, y];
+			}
+		}
+
+		return newArr;
+	}
+
 	public int[,] GetNewPerlinWorld(int width, int height) {
 		int[,] newWorld = GenerateArray(width, height, true);
 		PerlinNoiseSmooth(newWorld, Time.time, reduction, interval);
@@ -81,11 +92,11 @@ public class WorldGenerator : MonoBehaviour {
 			int heightVal = (int)((map.GetUpperBound(1)+1)/2 + heightMap[x]*(map.GetUpperBound(1)+1)/3);
 			for (int y = 0; y < map.GetUpperBound(1)+1; y++) {
 				if (y > heightVal) {
-					if (UnityEngine.Random.Range(0, 540) < 1) {
-						map[x, y] = 3;
-					} else {
+					//if (UnityEngine.Random.Range(0, 540) < 1) {
+					//	map[x, y] = 3;
+					//} else {
 						map[x, y] = 0;
-					}
+					//}
 				} else if (y == heightVal) {
 					map[x, y] = 1;
 				} else {

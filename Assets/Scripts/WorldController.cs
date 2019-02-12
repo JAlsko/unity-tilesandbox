@@ -21,7 +21,8 @@ public class WorldController : MonoBehaviour {
 	static string WORLD_SAVE_NAME = "worldSave.dat";
 	static int NULL_TILE = 0;
 
-	public int[,] world;
+	public int[,] world_fg;
+	public int[,] world_bg;
 
 	//Other world scripts
 	WorldGenerator wGen;
@@ -125,6 +126,16 @@ public class WorldController : MonoBehaviour {
 			worldInitialized = true;
 		}
 
+		[ContextMenu("CheckIfWorldExists")]
+		public void CheckIfWorldExists() {
+			if (world_fg == null) {
+				Debug.Log("Null world! Generating new one!");
+				world_fg = wGen.GetNewFractalWorld(worldWidth, worldHeight);
+				world_bg = WorldGenerator.Get2DArrayCopy(world_fg);
+				wRend.InitializeChunkObjects(world_fg);
+			}
+		}
+
 		void PlacePlayer() {
 			player.position = (Vector3.up * (worldHeight + chunkSize/2));
 		}
@@ -137,7 +148,7 @@ public class WorldController : MonoBehaviour {
 			for (int chunk = 0; chunk < totalChunks; chunk++) {
 				Vector2Int chunkPos = GetChunkPosition(chunk);
 				GameObject chunkObj = wRend.GetChunkObject(chunk);
-				wCol.GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
+				wCol.GenerateChunkColliders(chunkObj, world_fg, chunkPos.x, chunkPos.y);
 			}
 		}
 
@@ -147,7 +158,7 @@ public class WorldController : MonoBehaviour {
 		}
 
 		void GenerateLightMap() {
-			lCon.InitializeWorld(world);
+			lCon.InitializeWorld(world_fg, world_bg);
 		}
 	//
 
@@ -160,7 +171,7 @@ public class WorldController : MonoBehaviour {
 			BinaryFormatter bf = new BinaryFormatter ();
 			FileStream file1 = File.Open (Application.persistentDataPath + "/" + WORLD_SAVE_NAME, FileMode.OpenOrCreate);
 
-			bf.Serialize (file1, world);
+			bf.Serialize (file1, world_fg);
 			file1.Close ();
 		}
 
@@ -180,7 +191,7 @@ public class WorldController : MonoBehaviour {
 		}
 
 		void LoadSavedWorld(int[,] loadedWorld) {
-			world = loadedWorld;
+			world_fg = loadedWorld;
 			RenderWorld();
 		}
 
@@ -192,24 +203,14 @@ public class WorldController : MonoBehaviour {
 			RenderWorld();
 		}
 
-		public int[,] GetWorld() {
+		public int[,] GetWorld(int worldLayer = 0) {
 			CheckIfWorldExists();
-			return world;
+			return worldLayer == 0 ? world_fg : world_bg;
 		}
 	//
 
 	//Chunk Handling
 	//-------------------------------------------------------------------------------
-
-		[ContextMenu("CheckIfWorldExists")]
-		public void CheckIfWorldExists() {
-			if (world == null) {
-				Debug.Log("Null world! Generating new one!");
-				world = wGen.GetNewFractalWorld(worldWidth, worldHeight);
-				wRend.InitializeChunkObjects(world);
-			}
-		}
-
 		//Function to get number of chunks in an entire world row
 		int GetWorldChunkWidth(int[,] world) {
 			CheckIfWorldExists();
@@ -224,8 +225,8 @@ public class WorldController : MonoBehaviour {
 
 		//Public function to get total number of chunks
 		public int GetChunkCount() {
-			int worldChunkWidth = GetWorldChunkWidth(world);
-			int worldChunkHeight = GetWorldChunkHeight(world);
+			int worldChunkWidth = GetWorldChunkWidth(world_fg);
+			int worldChunkHeight = GetWorldChunkHeight(world_fg);
 			return worldChunkWidth * worldChunkHeight;
 		}
 
@@ -236,7 +237,7 @@ public class WorldController : MonoBehaviour {
 			prevChunk = curChunk;
 			int currentChunk = 0;
 
-			int worldChunkWidth = GetWorldChunkWidth(world);
+			int worldChunkWidth = GetWorldChunkWidth(world_fg);
 			int adjustedX = (int)(((int)player.position.x)/chunkSize);
 			int adjustedY = (int)(((int)player.position.y)/chunkSize);
 			currentChunk = (adjustedY * worldChunkWidth) + adjustedX;
@@ -255,7 +256,7 @@ public class WorldController : MonoBehaviour {
 
 			int chunk = 0;
 
-			int worldChunkWidth = GetWorldChunkWidth(world);
+			int worldChunkWidth = GetWorldChunkWidth(world_fg);
 			int adjustedX = (int)(x/chunkSize);
 			int adjustedY = (int)(y/chunkSize);
 			chunk = (adjustedY * worldChunkWidth) + adjustedX;
@@ -264,7 +265,7 @@ public class WorldController : MonoBehaviour {
 		}
 
 		//Public function to get world tiles from one chunk
-		public int[,] GetChunkTiles(int chunk) {
+		public int[,] GetChunkTiles(int chunk, int worldLayer = 0) {
 			CheckIfWorldExists();
 			Vector2Int chunkPos = GetChunkPosition(chunk);
 
@@ -274,7 +275,7 @@ public class WorldController : MonoBehaviour {
 			int adjustedY = chunkPos.y;
 			for (int y = 0; y < chunkSize; y++) {
 				for (int x = 0; x < chunkSize; x++) {
-					int newTile = world[adjustedX, adjustedY];
+					int newTile = worldLayer == 0 ? world_fg[adjustedX, adjustedY] : world_bg[adjustedX, adjustedY];
 					chunkTiles[x, y] = newTile;
 
 					adjustedX++;
@@ -288,7 +289,7 @@ public class WorldController : MonoBehaviour {
 
 		//Public function to get bottom-left coordinates of one chunk
 		public Vector2Int GetChunkPosition(int chunk) {
-			int worldChunkWidth = GetWorldChunkWidth(world);
+			int worldChunkWidth = GetWorldChunkWidth(world_fg);
 			int adjustedX = chunk % worldChunkWidth;
 			int adjustedY = chunk / worldChunkWidth;
 			return new Vector2Int(adjustedX * chunkSize, adjustedY * chunkSize);
@@ -299,7 +300,7 @@ public class WorldController : MonoBehaviour {
 			CheckIfWorldExists();
 
 			int numChunks = chunkRenderDiameter*chunkRenderDiameter;
-			int worldChunkWidth = GetWorldChunkWidth(world);
+			int worldChunkWidth = GetWorldChunkWidth(world_fg);
 			int[] chunksToShow = new int[numChunks];
 
 			int currentAddedChunk = 0;
@@ -357,7 +358,7 @@ public class WorldController : MonoBehaviour {
 	//-------------------------------------------------------------------------------
 		//Base tile manipulator
 		private void ModifyTile(int x, int y, int newTile) {
-			world[x, y] = newTile;
+			world_fg[x, y] = newTile;
 
 			int chunkToModify = GetChunk(x, y);
 
@@ -365,23 +366,21 @@ public class WorldController : MonoBehaviour {
 			wRend.RenderChunk(chunkToModify);
 
 			//Re-render tile's lightmap
-			TileData newTileObj = rtm.allTiles[newTile];
-			//lMap.SampleUpdatedTile(world, x, y, newTileObj);
-			lCon.HandleNewBlock(x, y, newTileObj, newTile == 0);
+			lCon.HandleNewBlock(x, y, newTile, world_bg[x, y]);
 
 			//Update tile's chunk's collider (doesn't update relevant colliders in other chunks)
 			//wCol.GenerateChunkColliders(chunkToModify, world);
 			
 			//Update colliders of tiles surrounding modified tile (updates other chunks' colliders if necessary)
-			wCol.GenerateTileColliders(world, x, y);
+			wCol.GenerateTileColliders(world_fg, x, y);
 		}
 
 		//Public tile remover function
 		public void RemoveTile(int x, int y) {
-			if (x > world.GetUpperBound(0) || x < world.GetLowerBound(0) || y > world.GetUpperBound(1) || y < world.GetLowerBound(1)) {
+			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				return;
 			}
-			if (world[x,y] == 0) {
+			if (world_fg[x,y] == 0) {
 				return;
 			}
 
@@ -390,10 +389,10 @@ public class WorldController : MonoBehaviour {
 
 		//Public tile addition function
 		public void AddTile(int x, int y, int newTile) {
-			if (x > world.GetUpperBound(0) || x < world.GetLowerBound(0) || y > world.GetUpperBound(1) || y < world.GetLowerBound(1)) {
+			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				return;
 			}
-			if (world[x,y] != 0) {
+			if (world_fg[x,y] != 0) {
 				return;
 			}
 
@@ -401,12 +400,21 @@ public class WorldController : MonoBehaviour {
 		}
 
 		//Public tile/nontile check-er method
-		public bool isTile(int x, int y) {
-			if (x > world.GetUpperBound(0) || x < world.GetLowerBound(0) || y > world.GetUpperBound(1) || y < world.GetLowerBound(1)) {
+		public bool isTile(int x, int y, int worldLayer = 0) {
+			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				Debug.Log("Out of map tile " + x + ", " + y);
 				return false;
 			}
-			return world[x, y] != 0;
+			bool tileExists = (worldLayer == 0 ? world_fg[x, y] != 0 : world_bg[x, y] != 0);
+			return tileExists;
+		}
+
+		public bool isSky(int x, int y) {
+			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
+				return false;
+			}
+			bool skyTile = world_fg[x, y] == 0 && world_bg[x, y] == 0;
+			return skyTile;
 		}
 
 	//

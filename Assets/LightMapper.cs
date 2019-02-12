@@ -280,7 +280,7 @@ public class LightMapper : MonoBehaviour
         world = wCon.GetWorld();
         curLightChecks = 0;
 
-        if (newTile.lightVal > minLightValue) {
+        if (newTile.lightStrength > minLightValue) {
             if (!lightSources.Contains(WorldCollider.HashableInt(x, y))) {
                 light_vals[x, y] = 1;//newTile.lightVal;
                 lightSources.Add(WorldCollider.HashableInt(x, y));
@@ -303,9 +303,9 @@ public class LightMapper : MonoBehaviour
         world = newWorld;
         curLightChecks = 0;
 
-        if (newTile.lightVal > minLightValue) {
+        if (newTile.lightStrength > minLightValue) {
             if (!lightSources.Contains(WorldCollider.HashableInt(x, y))) {
-                light_vals[x, y] = newTile.lightVal;
+                light_vals[x, y] = newTile.lightStrength;
                 lightSources.Add(WorldCollider.HashableInt(x, y));
                 lightSourceDict[WorldCollider.HashableInt(x, y)] = true;
                 SampleLight(x, y);
@@ -678,7 +678,7 @@ public class LightMapper : MonoBehaviour
             for (int y = 0; y <= world.GetUpperBound(1); y++) {
                 int tileIndex = world[x, y];
                 TileData tile = rtm.GetTile(tileIndex);
-                float lightVal = tile.lightVal;
+                float lightVal = tile.lightStrength;
                 if (lightVal > minLightValue) {
                     lightSources.Add(WorldCollider.HashableInt(x, y));
                 }
@@ -696,7 +696,7 @@ public class LightMapper : MonoBehaviour
             for (int y = 0; y <= world.GetUpperBound(1); y++) {
                 int tileIndex = world[x, y];
                 TileData tile = rtm.GetTile(tileIndex);
-                float lightVal = tile.lightVal;
+                float lightVal = tile.lightStrength;
                 
                 light_vals[x, y] = lightVal;
             }

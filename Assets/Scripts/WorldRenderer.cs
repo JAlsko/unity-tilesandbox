@@ -20,10 +20,11 @@ public class WorldRenderer : MonoBehaviour {
 	//Other neccessary world scripts
 	private WorldController wCon;
 	private WorldCollider wCol;
-	private TileManager rMgr;
+	private TileManager tMgr;
 
 	//World array (gets updated by world controller)
-	int[,] world;
+	int[,] world_fg;
+	int[,] world_bg;
 
 	//Object to hold all chunk objects
 	public Transform chunkParent;
@@ -32,12 +33,13 @@ public class WorldRenderer : MonoBehaviour {
 
 	//Array of existing chunk objects
 	GameObject[] chunkObjs;
+	GameObject[] chunkBGs;
 	MeshRenderer[] chunkLightmaps;
 
 	void Start() {
 		wCon = GetComponent<WorldController>();
 		wCol = GetComponent<WorldCollider>();
-		rMgr = GetComponent<TileManager>();
+		tMgr = GetComponent<TileManager>();
 
 		chunkObjs = new GameObject[0];
 		chunkLightmaps = new MeshRenderer[0];
@@ -52,6 +54,7 @@ public class WorldRenderer : MonoBehaviour {
 			int worldHeight = world.GetUpperBound(1)+1;
 
 			chunkObjs = new GameObject[worldWidth/chunkSize * worldHeight/chunkSize];
+			chunkBGs = new GameObject[worldWidth/chunkSize * worldHeight/chunkSize];
 			chunkLightmaps = new MeshRenderer[worldWidth/chunkSize * worldHeight/chunkSize];
 
 			//Initializing chunk object array
@@ -65,6 +68,9 @@ public class WorldRenderer : MonoBehaviour {
 				newChunkObj.transform.localScale = Vector3.one;
 				chunkObjs[chunk] = newChunkObj;
 				
+				GameObject chunkBG = newChunkObj.transform.Find("ChunkBG").gameObject;
+				chunkBGs[chunk] = chunkBG;
+
 				Transform chunkLightmapObj = newChunkObj.transform.Find("Lightmap");
 				chunkLightmapObj.localPosition = new Vector3(WorldController.chunkSize/2, WorldController.chunkSize/2, -1);
 				chunkLightmapObj.localScale = new Vector3(WorldController.chunkSize, WorldController.chunkSize, 1);
@@ -81,9 +87,10 @@ public class WorldRenderer : MonoBehaviour {
 	//-------------------------------------------------------------------------------
 		//Public function to handle showing/hiding new chunks
 		public void RenderChunks(int[] chunksToRender, int[] chunksToHide) {
-			world = wCon.GetWorld();
+			world_fg = wCon.GetWorld(0);
+			world_bg = wCon.GetWorld(1);
 			if (chunkObjs.Length <= 0) {
-				InitializeChunkObjects(world);
+				InitializeChunkObjects(world_fg);
 			}
 
 			foreach (int chunk in chunksToRender) {
@@ -104,9 +111,10 @@ public class WorldRenderer : MonoBehaviour {
 		//Function used for initial render of all existing chunks
 		[ContextMenu("RenderAllChunks")]
 		public void RenderAllChunks() {
-			world = wCon.GetWorld();
+			world_fg = wCon.GetWorld(0);
+			world_bg = wCon.GetWorld(1);
 			if (chunkObjs.Length <= 0) {
-				InitializeChunkObjects(world);
+				InitializeChunkObjects(world_fg);
 			}
 
 			for (int chunk = 0; chunk < chunkObjs.Length; chunk++) {
@@ -120,7 +128,8 @@ public class WorldRenderer : MonoBehaviour {
 			//RuleTile rt = ruleTiles[world[x,y]]
 			//Vector2Int[] uv_coords = rt.analyze(world, x, y)
 
-			int[,] chunkTiles = wCon.GetChunkTiles(chunk);
+			int[,] chunkTiles = wCon.GetChunkTiles(chunk, 0);
+			int[,] chunkBGTiles = wCon.GetChunkTiles(chunk, 1);
 
 			int chunkSize = WorldController.chunkSize;
 
@@ -129,17 +138,19 @@ public class WorldRenderer : MonoBehaviour {
 			Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
 
 			GameObject chunkObj = chunkObjs[chunk];
+			GameObject chunkBGObj = chunkBGs[chunk];
 
-			if (!chunkObj.GetComponent<MeshFilter>()) {
+			if (!chunkObj.GetComponent<MeshFilter>() || !chunkBGObj.GetComponent<MeshFilter>()) {
 				Debug.LogError("Chunk #" + chunk + "'s object has no mesh! Can't render!");
 				return;
 			}
 			MeshFilter chunkMF = chunkObj.GetComponent<MeshFilter>();
+			MeshFilter bgMF = chunkBGObj.GetComponent<MeshFilter>();
 
-			Vector3[] vertices = new Vector3[vertexCount];
-			int[] triangles = new int[(vertexCount/2)*3];
-			Vector3[] normals = new Vector3[vertexCount];
-			Vector2[] uv = new Vector2[vertexCount];
+			Vector3[] fgVertices = new Vector3[vertexCount];
+			int[] fgTriangles = new int[(vertexCount/2)*3];
+			Vector3[] fgNormals = new Vector3[vertexCount];
+			Vector2[] fgUV = new Vector2[vertexCount];
 
 			int vertexIndex = 0;
 			int triangleIndex = 0;
@@ -153,38 +164,38 @@ public class WorldRenderer : MonoBehaviour {
 					}
 
 					//Set up vertices in TL->TR->BL->BR order
-					vertices[vertexIndex] = new Vector3( x, y+1, 0);//(x/worldWidth)*meshScale.x , ((y+1)/worldHeight)*meshScale.y , 0 );
-					vertices[vertexIndex + 1] = new Vector3( x+1, y+1, 0);//((x+1)/worldWidth)*meshScale.x, ((y+1)/worldHeight)*meshScale.y, 0 );
-					vertices[vertexIndex + 2] = new Vector3( x, y, 0);//(x/worldWidth)*meshScale.x , (y/worldHeight)*meshScale.y , 0 );
-					vertices[vertexIndex + 3] = new Vector3( x+1, y, 0);//((x+1)/worldWidth)*meshScale.x, (y/worldHeight)*meshScale.y, 0 );
+					fgVertices[vertexIndex] = new Vector3( x, y+1, 0);//(x/worldWidth)*meshScale.x , ((y+1)/worldHeight)*meshScale.y , 0 );
+					fgVertices[vertexIndex + 1] = new Vector3( x+1, y+1, 0);//((x+1)/worldWidth)*meshScale.x, ((y+1)/worldHeight)*meshScale.y, 0 );
+					fgVertices[vertexIndex + 2] = new Vector3( x, y, 0);//(x/worldWidth)*meshScale.x , (y/worldHeight)*meshScale.y , 0 );
+					fgVertices[vertexIndex + 3] = new Vector3( x+1, y, 0);//((x+1)/worldWidth)*meshScale.x, (y/worldHeight)*meshScale.y, 0 );
 
 					//Set up triangles in 0->3->2 and 0->1->3 orders
-					triangles[triangleIndex+0] = vertexIndex+0;
-					triangles[triangleIndex+1] = vertexIndex+3;
-					triangles[triangleIndex+2] = vertexIndex+2;
-					triangles[triangleIndex+3] = vertexIndex+0;
-					triangles[triangleIndex+4] = vertexIndex+1;
-					triangles[triangleIndex+5] = vertexIndex+3;
+					fgTriangles[triangleIndex+0] = vertexIndex+0;
+					fgTriangles[triangleIndex+1] = vertexIndex+3;
+					fgTriangles[triangleIndex+2] = vertexIndex+2;
+					fgTriangles[triangleIndex+3] = vertexIndex+0;
+					fgTriangles[triangleIndex+4] = vertexIndex+1;
+					fgTriangles[triangleIndex+5] = vertexIndex+3;
 					
 					//Normals don't work, dunno why
-					normals[vertexIndex] = Vector3.back;
-					normals[vertexIndex+1] = Vector3.back;
-					normals[vertexIndex+2] = Vector3.back;
-					normals[vertexIndex+3] = Vector3.back;
+					fgNormals[vertexIndex] = Vector3.back;
+					fgNormals[vertexIndex+1] = Vector3.back;
+					fgNormals[vertexIndex+2] = Vector3.back;
+					fgNormals[vertexIndex+3] = Vector3.back;
 
 					//Connect UVTile coords to uv array
-					if (rMgr.AreTexturesPacked()) {
-						Vector2[] tileUVs = rMgr.GetTileUV(world, (int)x + chunkPos.x, (int)y + chunkPos.y);
+					if (tMgr.AreTexturesPacked()) {
+						Vector2[] tileUVs = tMgr.GetTileUV(world_fg, (int)x + chunkPos.x, (int)y + chunkPos.y);
 						for (int i = 0; i < 4; i++) {
 							Vector2 tileUV = tileUVs[i];
-							uv[vertexIndex+i] = tileUV;
+							fgUV[vertexIndex+i] = tileUV;
 						}
 					}
 					
 					else {
 						UVTile currentTile = tileBases[chunkTiles[(int)x,(int)y]];
 						for (int i = 0; i < 4; i++) {
-							uv[vertexIndex+i] = currentTile.uv_coords[i];
+							fgUV[vertexIndex+i] = currentTile.uv_coords[i];
 						}
 					}
 
@@ -195,23 +206,83 @@ public class WorldRenderer : MonoBehaviour {
 				}
 			}
 
-			Mesh mesh = new Mesh();
-			mesh.vertices = vertices;
-			mesh.triangles = triangles;
-			mesh.normals = normals;
-			mesh.uv = uv;
+			Mesh mainMesh = new Mesh();
+			mainMesh.vertices = fgVertices;
+			mainMesh.triangles = fgTriangles;
+			mainMesh.normals = fgNormals;
+			mainMesh.uv = fgUV;
 
-			//ONLY UNCOMMENT FOR SMALL WORLDS - WILL CRASH UNITY OTHERWISE
-			//Debug.Log("World width: " + worldWidth + " -- World height: " + worldHeight);
-			//Debug.Log("Vertices: " + PrintV3Arr(vertices));
-			//Debug.Log("Triangles: " + PrintIntArr(triangles));
-			//Debug.Log("UVs: " + PrintV2Arr(uv));
+			chunkMF.mesh = mainMesh;
 
-			chunkMF.mesh = mesh;
+			Vector3[] bgVertices = new Vector3[vertexCount];
+			int[] bgTriangles = new int[(vertexCount/2)*3];
+			Vector3[] bgNormals = new Vector3[vertexCount];
+			Vector2[] bgUV = new Vector2[vertexCount];
+
+			vertexIndex = 0;
+			triangleIndex = 0;
+			tileIndex = 0;
+
+			for (float x = 0; x < chunkSize; x++) {
+				for (float y = 0; y < chunkSize; y++) {
+					if (chunkBGTiles[(int)x, (int)y] == 0) {
+						continue;
+					}
+
+					//Set up vertices in TL->TR->BL->BR order
+					bgVertices[vertexIndex] = new Vector3( x, y+1, 0);//(x/worldWidth)*meshScale.x , ((y+1)/worldHeight)*meshScale.y , 0 );
+					bgVertices[vertexIndex + 1] = new Vector3( x+1, y+1, 0);//((x+1)/worldWidth)*meshScale.x, ((y+1)/worldHeight)*meshScale.y, 0 );
+					bgVertices[vertexIndex + 2] = new Vector3( x, y, 0);//(x/worldWidth)*meshScale.x , (y/worldHeight)*meshScale.y , 0 );
+					bgVertices[vertexIndex + 3] = new Vector3( x+1, y, 0);//((x+1)/worldWidth)*meshScale.x, (y/worldHeight)*meshScale.y, 0 );
+
+					//Set up triangles in 0->3->2 and 0->1->3 orders
+					bgTriangles[triangleIndex+0] = vertexIndex+0;
+					bgTriangles[triangleIndex+1] = vertexIndex+3;
+					bgTriangles[triangleIndex+2] = vertexIndex+2;
+					bgTriangles[triangleIndex+3] = vertexIndex+0;
+					bgTriangles[triangleIndex+4] = vertexIndex+1;
+					bgTriangles[triangleIndex+5] = vertexIndex+3;
+					
+					//Normals don't work, dunno why
+					bgNormals[vertexIndex] = Vector3.back;
+					bgNormals[vertexIndex+1] = Vector3.back;
+					bgNormals[vertexIndex+2] = Vector3.back;
+					bgNormals[vertexIndex+3] = Vector3.back;
+
+					//Connect UVTile coords to uv array
+					if (tMgr.AreTexturesPacked()) {
+						Vector2[] tileUVs = tMgr.GetTileUV(world_bg, (int)x + chunkPos.x, (int)y + chunkPos.y);
+						for (int i = 0; i < 4; i++) {
+							Vector2 tileUV = tileUVs[i];
+							bgUV[vertexIndex+i] = tileUV;
+						}
+					}
+					
+					else {
+						UVTile currentTile = tileBases[chunkTiles[(int)x,(int)y]];
+						for (int i = 0; i < 4; i++) {
+							bgUV[vertexIndex+i] = currentTile.uv_coords[i];
+						}
+					}
+
+					//On next tile, skip past current 4 vertices and current 6 triangle vertices (and increment tile index)
+					vertexIndex += 4;
+					triangleIndex += 6;
+					tileIndex++;
+				}
+			}
+
+			Mesh bgMesh = new Mesh();
+			bgMesh.vertices = bgVertices;
+			bgMesh.triangles = bgTriangles;
+			bgMesh.normals = bgNormals;
+			bgMesh.uv = bgUV;
+
+			bgMF.mesh = bgMesh;
 
 			ShowChunk(chunk);
 
-			wCol.GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
+			wCol.GenerateChunkColliders(chunkObj, world_fg, chunkPos.x, chunkPos.y);
 		}
 
 		//Functions for hiding/showing chunks but not updating them

@@ -18,25 +18,37 @@ public class LightController : MonoBehaviour
     private WorldRenderer wRend;
     private TileManager tMgr;
 
-    private int[,] world;
+    private int[,] world_fg;
+    private int[,] world_bg;
     private int worldWidth;
     private int worldHeight;
 
     private Color[,] lightValues;
     private Texture2D lightTex;
 
-    private Dictionary<int, LightSource> lightSourcesDict = new Dictionary<int, LightSource>();
-
     private Queue<LightNode> removalQueue, updateQueue;
     private List<LightSource> postRemovalUpdates;
     private List<Vector3Int> removalPositions;
 
-    public float blockFalloff;
+    public Color ambientColor;
+    [Range(0f, 1f)]
+    public float ambientStrength = 1f;
+
+    public int blockLightPenetration;
+    public int bgLightPenetration;
+
+    [Range(0f, 1f)]
+    public float bgShadowMult;
+
+    float blockFalloff;
+    float bgFalloff;
     public float passThreshold;
 
     public Shader lightMapShader;
     public Material lightMapMat;
+    public Material bgLightMapMat;
     private Texture2D lightMapTex;
+    private Texture2D bgLightMapTex;
 
     public Transform lightSourceParent;
     public GameObject lightSourcePrefab;
@@ -45,33 +57,45 @@ public class LightController : MonoBehaviour
         wCon = GetComponent<WorldController>();
         wRend = GetComponent<WorldRenderer>();
         tMgr = GetComponent<TileManager>();
+
+        blockFalloff = 1f/blockLightPenetration;
+        bgFalloff = 1f/bgLightPenetration;
     }
 
-    public void InitializeWorld(int[,] newWorld) {
-        world = newWorld;
+    public void InitializeWorld(int[,] newWorld_fg, int[,] newWorld_bg) {
+        world_fg = newWorld_fg;
+        world_bg = newWorld_bg;
 
-        worldWidth = world.GetUpperBound(0)+1;
-        worldHeight = world.GetUpperBound(1)+1;
+        worldWidth = world_fg.GetUpperBound(0)+1;
+        worldHeight = world_fg.GetUpperBound(1)+1;
 
         if (lightValues == null) {
             lightValues = new Color[worldWidth,worldHeight];
         }
 
         lightMapTex = new Texture2D(worldWidth, worldHeight, TextureFormat.RGBAFloat, false);
+        bgLightMapTex = new Texture2D(worldWidth, worldHeight, TextureFormat.RGBAFloat, false);
         //lightMapMat = new Material(lightMapShader);
         lightMapTex.alphaIsTransparency = true;
+        bgLightMapTex.alphaIsTransparency = true;
         lightMapTex.filterMode = FilterMode.Point;
+        bgLightMapTex.filterMode = FilterMode.Point;
 
         lightValues = GetBlackArray(worldWidth, worldHeight);  
         Color[] flattenedColors = flattenColorArray(lightValues);
         lightMapTex.SetPixels(flattenedColors);
+        bgLightMapTex.SetPixels(flattenedColors);
         lightMapTex.Apply();
+        bgLightMapTex.Apply();
         lightMapMat.SetTexture("_MainTex", lightMapTex);
+        bgLightMapMat.SetTexture("_MainTex", bgLightMapTex);
 
         updateQueue = new Queue<LightNode>();
         removalQueue = new Queue<LightNode>();
         postRemovalUpdates = new List<LightSource>();
         removalPositions = new List<Vector3Int>();
+
+        HandleNewWorld();
     }
 
     Color[,] GetBlackArray(int width, int height) {
@@ -80,8 +104,8 @@ public class LightController : MonoBehaviour
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (world != null) {
-                    if (world[x, y] == 10)
+                if (world_fg != null) {
+                    if (world_fg[x, y] == 0)
                         continue;
                 }
                 blackArr[x, y] = blackColor;
@@ -105,63 +129,182 @@ public class LightController : MonoBehaviour
     }
 
     Color GetLightAlpha(Color color) {
-        float alphaVal = (1-((color.r + color.g + color.b) / 3f));
+        /*float alphaVal = (1-((color.r + color.g + color.b) / 3f));
         color.a = alphaVal;
-        color.r = color.g = color.b = 0;
+        color.r *= 1-alphaVal;
+        color.g *= 1-alphaVal;
+        color.b *= 1-alphaVal;*/
         return color;
     }
 
-    void UpdateLightTexture(int x, int y, Color newColor) {
+    void QueueLightTextureUpdate(int x, int y, Color newColor) {
         Color alphaAdjustedColor = GetLightAlpha(newColor);
+        if (world_bg[x, y] == 0 && world_fg[x, y] == 0) {
+            alphaAdjustedColor = Color.white;
+        }
         lightMapTex.SetPixel(x, y, alphaAdjustedColor);
-        lightMapTex.Apply();
     }
 
-    public void HandleNewBlock(int x, int y, TileData newTile, bool removing = false) {
-        world = wCon.GetWorld();
+    void QueueBGLightTextureUpdate(int x, int y, Color newColor) {
+        Color shadowedColor = new Color(
+            newColor.r * bgShadowMult,
+            newColor.g * bgShadowMult,
+            newColor.b * bgShadowMult,
+            newColor.a);
 
-        if (newTile.lightVal > 0) {
-            if (!GetLightSource(new Vector3Int(x, y, 0))) {
-                CreateLightSource(new Vector3Int(x, y, 0), Color.white, newTile.lightVal);
-                return;
-            }
-        } else if (removing) {
-            if (GetLightSource(new Vector3Int(x, y, 0))) {
-                int tileHash = WorldCollider.HashableInt(x, y);
-                LightSource lightSource = GetLightSource(new Vector3Int(x, y, 0));
-                RemoveLight(lightSource);
-                lightSource.gameObject.SetActive(false);
-                Destroy(lightSource.gameObject);
-            }
-            else {
-                Color currentColor = lightValues[x, y];
-                if (currentColor != Color.black && currentColor != Color.clear)
-                {
-                    float colorIncrement = blockFalloff;
-                    currentColor = new Color(
-                        Mathf.Clamp(currentColor.r + colorIncrement, 0f, 1f),
-                        Mathf.Clamp(currentColor.g + colorIncrement, 0f, 1f),
-                        Mathf.Clamp(currentColor.b + colorIncrement, 0f, 1f));
+        Color alphaAdjustedColor = GetLightAlpha(shadowedColor);
 
-                    UpdateLightTexture(x, y, currentColor);
+        if (world_bg[x, y] == 0 && world_fg[x, y] == 0) {
+            alphaAdjustedColor = Color.white;
+        }
 
-                    // Create a light source to update light values, then remove it
-                    LightSource source = CreateLightSource(
-                        new Vector3Int(x, y, 0), currentColor, 1f);
-                    source.gameObject.SetActive(false);
-                    Destroy(source.gameObject);
+        bgLightMapTex.SetPixel(x, y, alphaAdjustedColor);
+    }
+
+    void ApplyLightTextureUpdates() {
+        lightMapTex.Apply();
+        bgLightMapTex.Apply();
+    }
+
+    public void HandleNewWorld() {
+        for (int x = 0; x < worldWidth; x++) {
+            for (int y = 0; y < worldHeight; y++) {
+                if (world_fg[x, y] == 0) {
+                    continue;
+                } 
+                
+                float tileLightVal = tMgr.allTiles[world_fg[x, y]].lightStrength;
+                if (tileLightVal > 0) {
+                    CreateLightSource(new Vector3Int(x, y, 0), tMgr.allTiles[world_fg[x, y]].lightColor, tileLightVal);
+                }
+
+                // Mark the possible air blocks around it as light sources
+                Vector3Int tilePosition = new Vector3Int(x, y, 0);
+                if (wCon.isSky(x + 1, y))
+                    if (!GetLightSource(tilePosition + Vector3Int.right))
+                        CreateLightSource(tilePosition + Vector3Int.right, ambientColor, ambientStrength);
+                if (wCon.isSky(x - 1, y))
+                    if (!GetLightSource(tilePosition + Vector3Int.left))
+                        CreateLightSource(tilePosition + Vector3Int.left, ambientColor, ambientStrength);
+                if (wCon.isSky(x, y + 1))
+                    if (!GetLightSource(tilePosition + Vector3Int.up))
+                        CreateLightSource(tilePosition + Vector3Int.up, ambientColor, ambientStrength);
+                if (wCon.isSky(x, y - 1))
+                    if (!GetLightSource(tilePosition + Vector3Int.down))
+                        CreateLightSource(tilePosition + Vector3Int.down, ambientColor, ambientStrength);
+                }
+        }
+
+        ApplyLightTextureUpdates();
+    }
+
+    public void HandleNewBlock(int x, int y, int newTile, int bgTile) {
+        TileData newTileData = tMgr.allTiles[newTile];
+
+        if (newTile == 0) {
+            if (bgTile != 0) {
+                if (GetLightSource(new Vector3Int(x, y, 0))) {
+                    LightSource lightSource = GetLightSource(new Vector3Int(x, y, 0));
+                    if (lightSource != null && lightSource.lightColor != ambientColor)
+                    {
+                        RemoveLight(lightSource);
+                        lightSource.gameObject.SetActive(false);
+                        Destroy(lightSource.gameObject);
+                    }
+                }
+
+                else {
+                    Color currentColor = lightValues[x, y];
+                    if (currentColor != Color.black && currentColor != Color.clear)
+                    {
+                        // The amount of brightness to add is the difference between falloffs!
+                        float colorIncrement = blockFalloff - bgFalloff;
+                        currentColor = new Color(
+                            Mathf.Clamp(currentColor.r + colorIncrement, 0f, 1f),
+                            Mathf.Clamp(currentColor.g + colorIncrement, 0f, 1f),
+                            Mathf.Clamp(currentColor.b + colorIncrement, 0f, 1f));
+
+                        QueueLightTextureUpdate(x, y, currentColor);
+                        QueueBGLightTextureUpdate(x, y, currentColor);
+
+                        // Create a light source to update light values, then remove it
+                        LightSource source = CreateLightSource(new Vector3Int(x, y, 0), currentColor, 1f);
+                        source.gameObject.SetActive(false);
+                        Destroy(source.gameObject);
+                    }
                 }
             }
+
+            else {
+                if (GetLightSource(new Vector3Int(x, y, 0))) {
+                    LightSource lightSource = GetLightSource(new Vector3Int(x, y, 0));
+                    if (lightSource != null && lightSource.lightColor != ambientColor)
+                    {
+                        RemoveLight(lightSource);
+                        lightSource.gameObject.SetActive(false);
+                        Destroy(lightSource.gameObject);
+                    }
+                }
+
+                Vector3Int tilePosition = new Vector3Int(x, y, 0);
+                CreateLightSource(tilePosition, ambientColor, 1f);
+            }
+
+            /*if (bgTile == 0) {
+                if (GetLightSource(new Vector3Int(x, y, 0))) {
+                    CreateLightSource(new Vector3Int(x, y, 0), ambientColor, 1f);
+                }
+            }*/
         }
+
+        else if (newTileData.lightStrength > 0) {
+            if (!GetLightSource(new Vector3Int(x, y, 0))) {
+                CreateLightSource(new Vector3Int(x, y, 0), newTileData.lightColor, newTileData.lightStrength);
+            } else {
+                LightSource existingLight = GetLightSource(new Vector3Int(x, y, 0));
+                if (existingLight.LightStrength <= newTileData.lightStrength) {
+                    CreateLightSource(new Vector3Int(x, y, 0), newTileData.lightColor, newTileData.lightStrength);
+                }
+            }
+        } else {
+            QueueLightTextureUpdate(x, y, Color.black);
+            QueueBGLightTextureUpdate(x, y, Color.black);
+
+            // Mark the possible air blocks around it as light sources
+            Vector3Int tilePosition = new Vector3Int(x, y, 0);
+            if (wCon.isSky(x + 1, y))
+                if (!GetLightSource(tilePosition + Vector3Int.right))
+                    CreateLightSource(tilePosition + Vector3Int.right, ambientColor, ambientStrength);
+            if (wCon.isSky(x - 1, y))
+                if (!GetLightSource(tilePosition + Vector3Int.left))
+                    CreateLightSource(tilePosition + Vector3Int.left, ambientColor, ambientStrength);
+            if (wCon.isSky(x, y + 1))
+                if (!GetLightSource(tilePosition + Vector3Int.up))
+                    CreateLightSource(tilePosition + Vector3Int.up, ambientColor, ambientStrength);
+            if (wCon.isSky(x, y - 1))
+                if (!GetLightSource(tilePosition + Vector3Int.down))
+                    CreateLightSource(tilePosition + Vector3Int.down, ambientColor, ambientStrength);
+
+            LightSource existingLight = GetLightSource(new Vector3Int(x, y, 0));
+            if (existingLight == null)
+                existingLight = CreateLightSource(new Vector3Int(x, y, 0), lightValues[x, y], 1f, false);
+
+            RemoveLight(existingLight);
+            existingLight.gameObject.SetActive(false);
+            Destroy(existingLight.gameObject);
+        }
+
+        ApplyLightTextureUpdates();
     }
 
-    LightSource CreateLightSource(Vector3Int position, Color color, float strength) {
+    LightSource CreateLightSource(Vector3Int position, Color color, float strength, bool doUpdate = true) {
         LightSource newLightSource = Instantiate(lightSourcePrefab, position, Quaternion.identity, lightSourceParent).GetComponent<LightSource>();
         newLightSource.InitializeLight(color, strength);
-        UpdateLight(newLightSource);
+
+        if (doUpdate)
+            UpdateLight(newLightSource);
 
         int positionHash = WorldCollider.HashableInt(position.x, position.y);
-        lightSourcesDict[positionHash] = newLightSource;
 
         return newLightSource;
     }
@@ -228,7 +371,8 @@ public class LightController : MonoBehaviour
             Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength));
         currentColor = lightValues[light.Position.x, light.Position.y];
         
-        UpdateLightTexture(light.Position.x, light.Position.y, currentColor);
+        QueueLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        QueueBGLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
 
         removalPositions.Clear();
         updateQueue.Clear();
@@ -248,7 +392,8 @@ public class LightController : MonoBehaviour
             Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength)
         );
         lightValues[light.Position.x, light.Position.y] = Color.black;
-        UpdateLightTexture(light.Position.x, light.Position.y, Color.black);
+        QueueLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        QueueBGLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
 
         removalQueue.Clear();
         removalQueue.Enqueue(lightNode);
@@ -261,7 +406,6 @@ public class LightController : MonoBehaviour
         }
 
         int positionHash = WorldCollider.HashableInt(light.Position.x, light.Position.y);
-        lightSourcesDict.Remove(positionHash);
     }
 
     void PerformUpdatePasses(Queue<LightNode> queue, bool redChannel = true, bool greenChannel = true, bool blueChannel = true) {
@@ -358,37 +502,48 @@ public class LightController : MonoBehaviour
         int neighborX = light.position.x+direction.x;
         int neighborY = light.position.y+direction.y;
 
+        bool hasBGTile = true;//wCon.isTile(neighborX, neighborY, 1);
+
+        if (hasBGTile) {
+            float thisLightFalloff = bgFalloff;
+
+            bool hasFGTile = wCon.isTile(neighborX, neighborY, 0);
+            if (hasFGTile)
+                thisLightFalloff = blockFalloff;
+
+            if (neighborLightVal + thisLightFalloff + passThreshold < startLightVal) {
+                startLightVal = Mathf.Clamp(startLightVal-thisLightFalloff, 0f, 1f);
+                Color currentColor = lightValues[neighborX, neighborY];
+                Color newColor;
+                switch(colorMode) {
+                    case LightingChannelMode.RED:
+                        newColor = new Color(startLightVal, currentColor.g, currentColor.b);
+                    break;
+                    case LightingChannelMode.GREEN:
+                        newColor = new Color(currentColor.r, startLightVal, currentColor.b);
+                    break;
+                    case LightingChannelMode.BLUE:
+                        newColor = new Color(currentColor.r, currentColor.g, startLightVal);
+                    break;
+                    default:
+                        return;
+                }
+
+                LightNode newLightNode;
+                newLightNode.position = light.position+direction;
+                newLightNode.color = newColor;
+                lightValues[neighborX, neighborY] = newColor;
+
+                QueueLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueBGLightTextureUpdate(neighborX, neighborY, newColor);
+
+                queue.Enqueue(newLightNode);
+            }
+        }
+
         /*if (world[neighborX, neighborY] == 0) {
             return;
         }*/
-
-        if (neighborLightVal + blockFalloff + passThreshold < startLightVal) {
-            startLightVal = Mathf.Clamp(startLightVal-blockFalloff, 0f, 1f);
-            Color currentColor = lightValues[neighborX, neighborY];
-            Color newColor;
-            switch(colorMode) {
-                case LightingChannelMode.RED:
-                    newColor = new Color(startLightVal, currentColor.g, currentColor.b);
-                break;
-                case LightingChannelMode.GREEN:
-                    newColor = new Color(currentColor.r, startLightVal, currentColor.b);
-                break;
-                case LightingChannelMode.BLUE:
-                    newColor = new Color(currentColor.r, currentColor.g, startLightVal);
-                break;
-                default:
-                    return;
-            }
-
-            LightNode newLightNode;
-            newLightNode.position = light.position+direction;
-            newLightNode.color = newColor;
-            lightValues[neighborX, neighborY] = newColor;
-
-            UpdateLightTexture(neighborX, neighborY, newColor);
-
-            queue.Enqueue(newLightNode);
-        }
     }
 
     void PerformRemovalPasses(Queue<LightNode> queue) {
@@ -508,7 +663,8 @@ public class LightController : MonoBehaviour
                 lightRemovalNode.color = currentColor;
                 lightValues[neighborX, neighborY] = newColor;
 
-                UpdateLightTexture(neighborX, neighborY, newColor);
+                QueueLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueBGLightTextureUpdate(neighborX, neighborY, newColor);
 
                 queue.Enqueue(lightRemovalNode);
             } else {

@@ -8,7 +8,8 @@ using UnityEngine.Tilemaps;
 [Serializable]
 public class TileData {
     public RuleTile tileBase;
-    public float lightVal;
+    public float lightStrength;
+    public Color lightColor = Color.white;
 }
 
 public class TileManager : MonoBehaviour
@@ -102,7 +103,8 @@ public class TileManager : MonoBehaviour
                 return null;
             }
 
-            TileData tile = allTiles[world[x,y]];
+            int tileIndex = world[x, y];
+            TileData tile = allTiles[tileIndex];
             int[] neighbors = GetNeighbors(world, x, y);
             foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                 int matchedAngle = CheckRule(tr, neighbors);
