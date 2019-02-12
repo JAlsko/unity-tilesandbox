@@ -81,7 +81,7 @@ public class WorldGenerator : MonoBehaviour {
 			int heightVal = (int)((map.GetUpperBound(1)+1)/2 + heightMap[x]*(map.GetUpperBound(1)+1)/3);
 			for (int y = 0; y < map.GetUpperBound(1)+1; y++) {
 				if (y > heightVal) {
-					if (UnityEngine.Random.Range(0, 360) < 1) {
+					if (UnityEngine.Random.Range(0, 540) < 1) {
 						map[x, y] = 3;
 					} else {
 						map[x, y] = 0;
@@ -89,7 +89,7 @@ public class WorldGenerator : MonoBehaviour {
 				} else if (y == heightVal) {
 					map[x, y] = 1;
 				} else {
-					if (UnityEngine.Random.Range(0, 75) < 1) {
+					if (UnityEngine.Random.Range(0, 360) < 1) {
 						map[x, y] = 3;
 					} else {
 						map[x, y] = 2;

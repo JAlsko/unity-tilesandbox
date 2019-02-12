@@ -17,9 +17,9 @@ TagManager:
   - Entity
   - Parallax
   - LightMap
-  - 
-  - 
-  - 
+  - LightSources
+  - AmbientLight
+  - LightObstacles
   - 
   - 
   - 

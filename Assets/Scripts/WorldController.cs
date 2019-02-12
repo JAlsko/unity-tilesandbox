@@ -13,7 +13,7 @@ using System;
 [RequireComponent(typeof(WorldCollider))]
 [RequireComponent(typeof(ColliderManager))]
 [RequireComponent(typeof(TileManager))]
-[RequireComponent(typeof(LightMapper))]
+[RequireComponent(typeof(LightController))]
 public class WorldController : MonoBehaviour {
 
     private static WorldController instance;
@@ -28,7 +28,7 @@ public class WorldController : MonoBehaviour {
 	WorldRenderer wRend;
 	WorldCollider wCol;
 	TileManager rtm;
-	LightMapper lMap;
+	LightController lCon;
 
 	public Transform player;
 
@@ -65,7 +65,7 @@ public class WorldController : MonoBehaviour {
 		wRend = GetComponent<WorldRenderer>();
 		wCol = GetComponent<WorldCollider>();
 		rtm = GetComponent<TileManager>();
-		lMap = GetComponent<LightMapper>();
+		lCon = GetComponent<LightController>();
 
 		if (instance == null) {
 			instance = this;
@@ -147,7 +147,7 @@ public class WorldController : MonoBehaviour {
 		}
 
 		void GenerateLightMap() {
-			lMap.SampleAllLights(world);
+			lCon.InitializeWorld(world);
 		}
 	//
 
@@ -365,9 +365,10 @@ public class WorldController : MonoBehaviour {
 			wRend.RenderChunk(chunkToModify);
 
 			//Re-render tile's lightmap
-			Tile newTileObj = rtm.allTiles[newTile];
-			lMap.SampleUpdatedTile(world, x, y, newTileObj);
-			
+			TileData newTileObj = rtm.allTiles[newTile];
+			//lMap.SampleUpdatedTile(world, x, y, newTileObj);
+			lCon.HandleNewBlock(x, y, newTileObj, newTile == 0);
+
 			//Update tile's chunk's collider (doesn't update relevant colliders in other chunks)
 			//wCol.GenerateChunkColliders(chunkToModify, world);
 			
@@ -401,6 +402,10 @@ public class WorldController : MonoBehaviour {
 
 		//Public tile/nontile check-er method
 		public bool isTile(int x, int y) {
+			if (x > world.GetUpperBound(0) || x < world.GetLowerBound(0) || y > world.GetUpperBound(1) || y < world.GetLowerBound(1)) {
+				Debug.Log("Out of map tile " + x + ", " + y);
+				return false;
+			}
 			return world[x, y] != 0;
 		}
 

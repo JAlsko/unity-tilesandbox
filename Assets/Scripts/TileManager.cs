@@ -6,7 +6,7 @@ using System;
 using UnityEngine.Tilemaps;
 
 [Serializable]
-public class Tile {
+public class TileData {
     public RuleTile tileBase;
     public float lightVal;
 }
@@ -14,7 +14,7 @@ public class Tile {
 public class TileManager : MonoBehaviour
 {
     //List of rule tile assets corresponding to integer tile indices
-    public List<Tile> allTiles = new List<Tile>();
+    public List<TileData> allTiles = new List<TileData>();
 
     //Array and list of total textures to pack to atlas (List converted to array on PackTexture call)
     public Texture2D[] texturesToPack;
@@ -71,7 +71,7 @@ public class TileManager : MonoBehaviour
             atlasTex.filterMode = FilterMode.Point;
             
             int ruleTileIndex = 0;
-            foreach (Tile tile in allTiles) {
+            foreach (TileData tile in allTiles) {
                 if (tile == null) {
                     Debug.Log("Null rule tile at index " + ruleTileIndex);
                     return;
@@ -102,7 +102,7 @@ public class TileManager : MonoBehaviour
                 return null;
             }
 
-            Tile tile = allTiles[world[x,y]];
+            TileData tile = allTiles[world[x,y]];
             int[] neighbors = GetNeighbors(world, x, y);
             foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                 int matchedAngle = CheckRule(tr, neighbors);
@@ -119,7 +119,7 @@ public class TileManager : MonoBehaviour
             return texturesPacked;
         }
 
-        public Tile GetTile(int index) {
+        public TileData GetTile(int index) {
             return allTiles[index];
         }
 
