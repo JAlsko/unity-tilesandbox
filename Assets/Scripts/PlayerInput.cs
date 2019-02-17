@@ -21,7 +21,7 @@ public class PlayerInput : MonoBehaviour {
 
 		HandleMove();
 
-		HandleClick();
+		//HandleClick();
 	}
 
 	void HandleMove() {
