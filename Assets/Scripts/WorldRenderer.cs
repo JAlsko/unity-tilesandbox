@@ -53,9 +53,9 @@ public class WorldRenderer : MonoBehaviour {
 			int worldWidth = world.GetUpperBound(0)+1;
 			int worldHeight = world.GetUpperBound(1)+1;
 
-			chunkObjs = new GameObject[worldWidth/chunkSize * worldHeight/chunkSize];
-			chunkBGs = new GameObject[worldWidth/chunkSize * worldHeight/chunkSize];
-			chunkLightmaps = new MeshRenderer[worldWidth/chunkSize * worldHeight/chunkSize];
+			chunkObjs = new GameObject[WorldController.GetWorldChunkWidth() * WorldController.GetWorldChunkHeight()];
+			chunkBGs = new GameObject[WorldController.GetWorldChunkWidth() * WorldController.GetWorldChunkHeight()];
+			chunkLightmaps = new MeshRenderer[WorldController.GetWorldChunkWidth() * WorldController.GetWorldChunkHeight()];
 
 			//Initializing chunk object array
 			for (int chunk = 0; chunk < chunkObjs.Length; chunk++) {
@@ -69,17 +69,29 @@ public class WorldRenderer : MonoBehaviour {
 				chunkObjs[chunk] = newChunkObj;
 				
 				GameObject chunkBG = newChunkObj.transform.Find("ChunkBG").gameObject;
+				BoxCollider2D bgCol = chunkBG.GetComponent<BoxCollider2D>();
+				bgCol.offset = new Vector2(chunkSize/2, chunkSize/2);
+				bgCol.size = new Vector2(chunkSize, chunkSize);
 				chunkBGs[chunk] = chunkBG;
 
 				Transform chunkLightmapObj = newChunkObj.transform.Find("Lightmap");
-				chunkLightmapObj.localPosition = new Vector3(WorldController.chunkSize/2, WorldController.chunkSize/2, -1);
-				chunkLightmapObj.localScale = new Vector3(WorldController.chunkSize, WorldController.chunkSize, 1);
+				chunkLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, -1);
+				chunkLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
 				chunkLightmaps[chunk] = chunkLightmapObj.GetComponent<MeshRenderer>();
 			}
 		}
 
 		public GameObject GetChunkObject(int chunk) {
 			return chunkObjs[chunk];
+		}
+
+		public List<Transform> GetAllChunkParents() {
+			List<Transform> allChunkParents = new List<Transform>();
+			foreach (GameObject chunkObj in chunkObjs) {
+				allChunkParents.Add(chunkObj.transform);
+			}
+
+			return allChunkParents;
 		}
 	//
 

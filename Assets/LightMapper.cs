@@ -177,7 +177,7 @@ public class LightMapper : MonoBehaviour
 
     [ContextMenu("Generate All Chunk Lightmaps")]
     public void GenerateAllLightmapTextures() {
-        int chunkCount = wCon.GetChunkCount();
+        int chunkCount = WorldController.GetChunkCount();
         for (int chunk = 0; chunk < chunkCount; chunk++) {
             UpdateChunkLightmap(chunk);
         }
@@ -230,7 +230,7 @@ public class LightMapper : MonoBehaviour
 
     public void SampleChunks(List<int> chunksToSample) {
         foreach (int chunk in chunksToSample) {
-            if (chunk < 0 || chunk >= wCon.GetChunkCount()) {
+            if (chunk < 0 || chunk >= WorldController.GetChunkCount()) {
                 continue;
             }
             else {
@@ -420,7 +420,7 @@ public class LightMapper : MonoBehaviour
         }
 
         if (!lightSources.Contains(tileHash)) {
-            int chunk = wCon.GetChunk(x, y);
+            int chunk = WorldController.GetChunk(x, y);
             chunksToUpdate[chunk] = true;
 
             float oldVal = light_vals[x, y];
@@ -489,7 +489,7 @@ public class LightMapper : MonoBehaviour
         int tileHash = WorldCollider.HashableInt(x, y);
         if (!lightSources.Contains(tileHash)) {
             EvaluateTileLight(x, y);
-            int chunk = wCon.GetChunk(x, y);
+            int chunk = WorldController.GetChunk(x, y);
             chunksToUpdate[chunk] = true;
             if (light_vals[x, y] < minLightValue) {
                 return;
@@ -559,7 +559,7 @@ public class LightMapper : MonoBehaviour
         int tileHash = WorldCollider.HashableInt(x, y);
         if (!lightSources.Contains(tileHash)) {
             EvaluateTileLight(x, y);
-            int chunk = wCon.GetChunk(x, y);
+            int chunk = WorldController.GetChunk(x, y);
             chunksToUpdate[chunk] = true;
             if (light_vals[x, y] < minLightValue) {
                 return;

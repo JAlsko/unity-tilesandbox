@@ -10,6 +10,7 @@ public class TileData {
     public RuleTile tileBase;
     public float lightStrength;
     public Color lightColor = Color.white;
+    public int dropItem_id;
 }
 
 public class TileManager : MonoBehaviour

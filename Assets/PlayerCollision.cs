@@ -5,9 +5,6 @@ using UnityEngine;
 public class PlayerCollision : MonoBehaviour
 {
     PlayerInventory pInv;
-    public bool isPickingUpItem = false;
-
-    public List<int> instanceIDs = new List<int>();
 
     void Start()
     {
@@ -20,10 +17,10 @@ public class PlayerCollision : MonoBehaviour
     }
 
     void OnTriggerEnter2D(Collider2D col) {
-        if (col.tag == "DroppedItem" && !instanceIDs.Contains(col.GetInstanceID())) {
-            instanceIDs.Add(col.GetInstanceID());
+        if (col.tag == "DroppedItem") {
+            Debug.Log("Picking up item");
             DroppedItem droppedItem = col.GetComponent<DroppedItem>();
-            droppedItem.DisableCollision();
+            //droppedItem.DisableCollision();
             ItemObject leftOverItem = droppedItem.GetDroppedItem();
             if (leftOverItem == null) {
                 Debug.Log("Trying to pickup null item!");
@@ -32,12 +29,11 @@ public class PlayerCollision : MonoBehaviour
             leftOverItem = pInv.TryAddItem(leftOverItem);
             if (leftOverItem == null) {
                 droppedItem.HideDroppedItem();
-                droppedItem.EnableCollision();
+                //droppedItem.EnableCollision();
             } else {
                 droppedItem.InitializeItem(leftOverItem);
-                droppedItem.EnableCollision();
+                //droppedItem.EnableCollision();
             }
-            instanceIDs.Remove(col.GetInstanceID());
         }
     }
 

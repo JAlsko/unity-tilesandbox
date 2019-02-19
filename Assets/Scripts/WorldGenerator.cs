@@ -103,7 +103,7 @@ public class WorldGenerator : MonoBehaviour {
 					if (UnityEngine.Random.Range(0, 360) < 1) {
 						map[x, y] = 3;
 					} else {
-						map[x, y] = 2;
+						map[x, y] = 1;
 					}
 				}
 			}

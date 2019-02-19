@@ -30,9 +30,9 @@ public class PlayerInventory : MonoBehaviour
             invSlots[i].InitializeInventory(this, i);
         }
 
-        AddItem(0, new ItemObject(1, 10));
-        AddItem(1, new ItemObject(2, 1));
-        AddItem(2, new ItemObject(1, 999));
+        //AddItem(0, new ItemObject(1, 10));
+        //AddItem(1, new ItemObject(2, 1));
+        //AddItem(2, new ItemObject(1, 999));
     }
 
     bool IsValidInvSlot(int invSlot) {

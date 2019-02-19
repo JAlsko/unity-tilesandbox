@@ -50,7 +50,7 @@ public class WorldCollider : MonoBehaviour
         public void GenerateTileColliders(int[,] world, int x, int y) {
             for (int i = y-smallSearchRadius; i < y+smallSearchRadius; i++) {
                 for (int j = x-smallSearchRadius; j < x+smallSearchRadius; j++) {
-                    int chunk = wCon.GetChunk(j, i);
+                    int chunk = WorldController.GetChunk(j, i);
                     GameObject chunkObj = wRend.GetChunkObject(chunk);
                     Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
                     int inChunkX = j - chunkPos.x;

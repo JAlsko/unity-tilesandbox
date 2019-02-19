@@ -140,11 +140,17 @@ public class CursorController : MonoBehaviour
     }
 
     void UseHotbarItem() {
+        WorldModifier.Instance.RemoveTile();
         IncrementClicks();
         currentAction = ClickAction.UseHotbarItem;
     }
 
     void UseHeldItem() {
+        heldItem.Use();
+        if (heldItem.currentStack <= 0) {
+            heldItem = null;
+        }
+        UpdateHeldItemIcon();
         IncrementClicks();
         currentAction = ClickAction.UseHeldItem;
     }
