@@ -17,7 +17,6 @@ public class ItemManager : MonoBehaviour
     static List<Transform> s_chunkParents;
 
     public List<BlockItem> blockItems = new List<BlockItem>();
-    public List<LightItem> lightItems = new List<LightItem>();
     private static Dictionary<int, Item> items;
     private static Dictionary<int, BlockItem> blocks;
 
@@ -44,10 +43,6 @@ public class ItemManager : MonoBehaviour
             Item newItem = newBlock;
             items[newItem.id] = newItem;
             blocks[newBlock.blockID] = newBlock;
-        }
-        for (int i = 0; i < lightItems.Count; i++) {
-            Item newItem = lightItems[i];
-            items[newItem.id] = newItem;
         }
     }
 

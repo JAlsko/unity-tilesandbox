@@ -16,13 +16,13 @@ TagManager:
   - UI
   - 
   - 
-  - PostProcessing
+  - 
   - Entity
   - Parallax
-  - LightMap
-  - LightSources
-  - AmbientLight
-  - LightObstacles
+  - FGLightmap
+  - BGLightmap
+  - FGWorld
+  - BGWorld
   - WorldSpaceUI
   - ChunkDetection
   - ItemDetection

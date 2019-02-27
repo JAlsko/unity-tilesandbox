@@ -75,6 +75,7 @@ MonoBehaviour:
   triggerCol: {fileID: 2091336949695556974}
   physCol: {fileID: 3160985555081470445}
   rbody: {fileID: 421275864}
+  itemLight: {fileID: 224397207697221950}
   magnetizeVelocity: 200
   minVelocity: 15
 --- !u!212 &1725271398
@@ -136,6 +137,7 @@ GameObject:
   - component: {fileID: 4275814230811620158}
   - component: {fileID: 3160985555081470445}
   - component: {fileID: 421275864}
+  - component: {fileID: 224397207697221950}
   m_Layer: 18
   m_Name: DroppedItem
   m_TagString: Untagged
@@ -205,3 +207,19 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &224397207697221950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4275814230811620152}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d9f68c617a12e64591e59cd08a01314, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startLightStrength: 1
+  lightColor: {r: 0, g: 0, b: 0, a: 1}
+  movementFadeAmount: 0
+  minLightAmount: 0.1

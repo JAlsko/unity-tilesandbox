@@ -19,6 +19,8 @@ public class CursorController : MonoBehaviour
         PlaceSingleItem = 7,
     }
 
+    public SpriteRenderer playerHeldItem;
+    public DynamicLightSource playerHeldItemLight;
     public ItemObject heldItem;
 
     public Vector2 defaultFlingForce;
@@ -50,7 +52,7 @@ public class CursorController : MonoBehaviour
 
     void Start()
     {
-        
+        playerHeldItemLight.enabled = false;
     }
 
     void Update()
@@ -150,7 +152,7 @@ public class CursorController : MonoBehaviour
         if (heldItem.currentStack <= 0) {
             heldItem = null;
         }
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         IncrementClicks();
         currentAction = ClickAction.UseHeldItem;
     }
@@ -158,14 +160,14 @@ public class CursorController : MonoBehaviour
     void TakeWholeItem(InventorySlotObject invSlot) {
         IncrementClicks();
         heldItem = invSlot.TakeWholeItem();
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         currentAction = ClickAction.TakeWholeItem;
     }
 
     void PlaceWholeItem(InventorySlotObject invSlot) {
         IncrementClicks();
         heldItem = invSlot.InsertItemObject(heldItem);
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         currentAction = ClickAction.PlaceWholeItem;
     }
 
@@ -178,7 +180,7 @@ public class CursorController : MonoBehaviour
         IncrementClicks();
         ItemManager.SpawnDroppedItem(heldItem, (int)cursorPos.x, (int)cursorPos.y, defaultFlingForce);
         heldItem = null;
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         currentAction = ClickAction.DropHeldItem;
     }
 
@@ -189,13 +191,13 @@ public class CursorController : MonoBehaviour
         } else {
             heldItem = invSlot.TakePartialItem(1, heldItem.currentStack);
         }
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         currentAction = ClickAction.TakeSingleItem;
     }
 
     void PlaceSingleItem(InventorySlotObject invSlot) {
         heldItem = invSlot.InsertItemObject(heldItem, 1);
-        UpdateHeldItemIcon();
+        UpdateHeldItemVisuals();
         currentAction = ClickAction.PlaceSingleItem;
     }
 
@@ -220,32 +222,32 @@ public class CursorController : MonoBehaviour
         return null;
     }
 
-    void useitem() {
-        //Decrement ItemObject currentStack
-        //If currentStack is 0, remove item from inventory
-        //Call item's use function
-    }
-
-    void dropitem() {
-        //Remove item from inventory
-        //Instantiate and 'fling' gameobject representing ItemObject
-        ItemManager.SpawnDroppedItem(heldItem, (int)cursorPos.x, (int)cursorPos.y, defaultFlingForce);
-        heldItem = null;
-    }
-
-    void UpdateHeldItemIcon() {
+    void UpdateHeldItemVisuals() {
         if (heldItem == null) {
-            HideHeldItemIcon();
+            HideHeldItemVisuals();
         } else {
             Sprite newIcon = ItemManager.GetItem(heldItem.id).icon;
+            playerHeldItem.sprite = newIcon;
             heldItemIcon.sprite = newIcon;
             heldItemCount.text = heldItem.currentStack > 1 ? heldItem.currentStack + "" : "";
+
+            float lightVal = ItemManager.GetItem(heldItem.id).lightStrength;
+            if (lightVal > 0) {
+                Color lightColor = ItemManager.GetItem(heldItem.id).lightColor;
+                playerHeldItemLight.startLightStrength = lightVal;
+                playerHeldItemLight.lightColor = lightColor;
+                playerHeldItemLight.enabled = true;
+                playerHeldItemLight.EnableLight();
+            }
         }
     }
 
-    void HideHeldItemIcon() {
+    void HideHeldItemVisuals() {
+        playerHeldItem.sprite = nullSprite;
         heldItemIcon.sprite = nullSprite;
         heldItemCount.text = "";
+
+        playerHeldItemLight.DisableLight();
     }
 
     bool CanPerformClickAction() {

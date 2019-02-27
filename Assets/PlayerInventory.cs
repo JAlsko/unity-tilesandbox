@@ -68,7 +68,6 @@ public class PlayerInventory : MonoBehaviour
                 int addableAmount = Mathf.Min(ItemManager.GetItem(id).maxStackSize - inventory[i].currentStack, currentStack);
                 inventory[i].currentStack += addableAmount;
                 invSlots[i].UpdateItemIcon(inventory[i]);
-                Debug.Log("Distributing stack of "  + addableAmount + "... current amount now " + (currentStack - addableAmount));
                 return DistributeNewAddedItem(id, currentStack - addableAmount, i+1);
             }
         }

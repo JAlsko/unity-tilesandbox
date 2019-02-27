@@ -15,6 +15,7 @@ using System;
 [RequireComponent(typeof(TileManager))]
 [RequireComponent(typeof(LightController))]
 [RequireComponent(typeof(ItemManager))]
+[RequireComponent(typeof(TerrainGenerator))]
 public class WorldController : Singleton<WorldController> {
 
     private static WorldController instance;
@@ -26,7 +27,7 @@ public class WorldController : Singleton<WorldController> {
 	public int[,] world_bg;
 
 	//Other world scripts
-	WorldGenerator wGen;
+	TerrainGenerator tGen;
 	WorldRenderer wRend;
 	WorldCollider wCol;
 	TileManager tMgr;
@@ -67,7 +68,7 @@ public class WorldController : Singleton<WorldController> {
 	bool worldInitialized = false;
 
 	void Start () {
-		wGen = GetComponent<WorldGenerator>();
+		tGen = GetComponent<TerrainGenerator>();
 		wRend = GetComponent<WorldRenderer>();
 		wCol = GetComponent<WorldCollider>();
 		tMgr = GetComponent<TileManager>();
@@ -138,8 +139,9 @@ public class WorldController : Singleton<WorldController> {
 		public void CheckIfWorldExists() {
 			if (world_fg == null) {
 				Debug.Log("Null world! Generating new one!");
-				world_fg = wGen.GetNewFractalWorld(worldWidth, worldHeight);
-				world_bg = WorldGenerator.Get2DArrayCopy(world_fg);
+				world_fg = tGen.GenerateNewWorld();
+				world_bg = TerrainGenerator.Get2DArrayCopy(world_fg);
+				world_fg = tGen.DigCaves(world_fg);
 			}
 		}
 
@@ -305,7 +307,7 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		//Public function to get bottom-left coordinates of one chunk
-		public Vector2Int GetChunkPosition(int chunk) {
+		public static Vector2Int GetChunkPosition(int chunk) {
 			int adjustedX = chunk % worldChunkWidth;
 			int adjustedY = chunk / worldChunkWidth;
 			return new Vector2Int(adjustedX * chunkSize, adjustedY * chunkSize);

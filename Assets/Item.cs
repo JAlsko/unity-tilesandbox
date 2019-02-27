@@ -11,6 +11,8 @@ public abstract class Item {
     public float colliderSize;
     public int maxStackSize = 999;
     public bool consumeOnUse = true;
+    public float lightStrength = 0f;
+    public Color lightColor;
 
     public abstract int Use();
 }

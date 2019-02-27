@@ -43,7 +43,7 @@ public class WorldGenerator : MonoBehaviour {
 		return newWorld;
 	}
 
-	public int[,] GetNewFractalWorld(int width, int height) {
+	public static int[,] GetNewFractalWorld(int width, int height) {
 		int[,] newWorld = GenerateArray(width, height, true);
 		FractalTerrain(newWorld, Time.time);
 		return newWorld;
@@ -101,7 +101,7 @@ public class WorldGenerator : MonoBehaviour {
 					map[x, y] = 1;
 				} else {
 					if (UnityEngine.Random.Range(0, 360) < 1) {
-						map[x, y] = 3;
+						map[x, y] = 2;
 					} else {
 						map[x, y] = 1;
 					}

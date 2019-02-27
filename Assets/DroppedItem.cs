@@ -9,6 +9,7 @@ public class DroppedItem : MonoBehaviour
     public BoxCollider2D triggerCol;
     public BoxCollider2D physCol;
     public Rigidbody2D rbody;
+    public DynamicLightSource itemLight;
 
     public float magnetizeVelocity = 250f;
     public float minVelocity = 15f;
@@ -73,6 +74,15 @@ public class DroppedItem : MonoBehaviour
         physCol.size = Vector2.one * colSize;
         EnableCollision();
         physCol.transform.gameObject.SetActive(true);
+
+        float lightVal = ItemManager.GetItem(itemInfo.id).lightStrength;
+        if (lightVal > 0) {
+            Color lightColor = ItemManager.GetItem(itemInfo.id).lightColor;
+            itemLight.startLightStrength = lightVal;
+            itemLight.lightColor = lightColor;
+            itemLight.enabled = true;
+            itemLight.EnableLight();
+        }
     }
 
     public void HideDroppedItem() {
@@ -80,6 +90,8 @@ public class DroppedItem : MonoBehaviour
         UpdateMagnetTarget(null, magnetizeTargetID);
         //physCol.transform.SetParent(null);
         physCol.transform.gameObject.SetActive(false);
+        if (itemLight.enabled)
+            itemLight.DisableLight();
     }
 
     public void EnableCollision() {

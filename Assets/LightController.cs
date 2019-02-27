@@ -5,7 +5,7 @@ using UnityEngine;
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(WorldRenderer))]
 [RequireComponent(typeof(TileManager))]
-public class LightController : MonoBehaviour
+public class LightController : Singleton<LightController>
 {
     public enum LightingChannelMode
     {
@@ -24,11 +24,17 @@ public class LightController : MonoBehaviour
     private int worldHeight;
 
     private Color[,] lightValues;
-    private Texture2D lightTex;
+    private Texture2D[] chunkLightTexes;
+    private Texture2D[] chunkBGLightTexes;
+    private Material[] chunkLightMats;
+    private Material[] chunkBGLightMats;
+    private Dictionary<int, bool> chunksToUpdate = new Dictionary<int, bool>();
 
     private Queue<LightNode> removalQueue, updateQueue;
     private List<LightSource> postRemovalUpdates;
     private List<Vector3Int> removalPositions;
+
+    private List<DynamicLightSource> dynamicLights;
 
     public Color ambientColor;
     [Range(0f, 1f)]
@@ -61,6 +67,23 @@ public class LightController : MonoBehaviour
         blockFalloff = 1f/blockLightPenetration;
         bgFalloff = 1f/bgLightPenetration;
     }
+    
+    public void UpdateDynamicLight(DynamicLightSource light) {
+        LightSource oldLightSource = light.GetLightSource();
+        RemoveLight(oldLightSource);
+        light.RemoveLightSource();
+        LightSource newLightSource = light.GetNewLightSource();
+        UpdateLight(newLightSource);
+
+        ApplyChunkTextureLightUpdates();
+    }
+
+    public void RemoveDynamicLight(DynamicLightSource light) {
+        LightSource oldLightSource = light.GetLightSource();
+        RemoveLight(oldLightSource);
+
+        ApplyChunkTextureLightUpdates();
+    }
 
     public void InitializeWorld(int[,] newWorld_fg, int[,] newWorld_bg) {
         world_fg = newWorld_fg;
@@ -69,20 +92,64 @@ public class LightController : MonoBehaviour
         worldWidth = world_fg.GetUpperBound(0)+1;
         worldHeight = world_fg.GetUpperBound(1)+1;
 
+        int chunkSize = WorldController.chunkSize;
+
         if (lightValues == null) {
             lightValues = new Color[worldWidth,worldHeight];
         }
 
+        int chunkCount = WorldController.GetChunkCount();
+
+        chunkLightTexes = new Texture2D[chunkCount];
+        chunkBGLightTexes = new Texture2D[chunkCount];
+        chunkLightMats = new Material[chunkCount];
+        chunkBGLightMats = new Material[chunkCount];
+
+        Color[,] baseChunkLightValues = GetBlackArray(chunkSize, chunkSize);  
+        Color[] flattenedColors = flattenColorArray(baseChunkLightValues);
+
+        for (int chunk = 0; chunk < chunkCount; chunk++) {
+            Texture2D newLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBAFloat, false);
+            Texture2D newBGLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBAFloat, false);
+            Material newLightMat = new Material(lightMapShader);
+            Material newBGLightMat = new Material(lightMapShader);
+            
+            newLightTex.alphaIsTransparency = true;
+            newBGLightTex.alphaIsTransparency = true;
+            newLightTex.filterMode = FilterMode.Point;
+            newBGLightTex.filterMode = FilterMode.Point;
+
+            newLightTex.SetPixels(flattenedColors);
+            newBGLightTex.SetPixels(flattenedColors);
+            newLightTex.Apply();
+            newBGLightTex.Apply();
+
+            chunkLightTexes[chunk] = newLightTex;
+            chunkBGLightTexes[chunk] = newBGLightTex;
+
+            newLightMat.SetTexture("_MainTex", chunkLightTexes[chunk]);
+            newBGLightMat.SetTexture("_MainTex", chunkBGLightTexes[chunk]);
+
+            GameObject chunkObj = wRend.GetChunkObject(chunk);
+            MeshRenderer fgRenderer = chunkObj.transform.Find("LightMap").GetComponent<MeshRenderer>();
+            MeshRenderer bgRenderer = chunkObj.transform.Find("BGLightMap").GetComponent<MeshRenderer>();
+            fgRenderer.material = newLightMat;
+            bgRenderer.material = newBGLightMat;
+
+            chunkLightMats[chunk] = newLightMat;
+            chunkBGLightMats[chunk] = newBGLightMat;
+        }
+
+        lightValues = GetBlackArray(worldWidth, worldHeight);  
+        flattenedColors = flattenColorArray(lightValues);
+
         lightMapTex = new Texture2D(worldWidth, worldHeight, TextureFormat.RGBAFloat, false);
         bgLightMapTex = new Texture2D(worldWidth, worldHeight, TextureFormat.RGBAFloat, false);
-        //lightMapMat = new Material(lightMapShader);
         lightMapTex.alphaIsTransparency = true;
         bgLightMapTex.alphaIsTransparency = true;
         lightMapTex.filterMode = FilterMode.Point;
         bgLightMapTex.filterMode = FilterMode.Point;
 
-        lightValues = GetBlackArray(worldWidth, worldHeight);  
-        Color[] flattenedColors = flattenColorArray(lightValues);
         lightMapTex.SetPixels(flattenedColors);
         bgLightMapTex.SetPixels(flattenedColors);
         lightMapTex.Apply();
@@ -94,6 +161,7 @@ public class LightController : MonoBehaviour
         removalQueue = new Queue<LightNode>();
         postRemovalUpdates = new List<LightSource>();
         removalPositions = new List<Vector3Int>();
+        dynamicLights = new List<DynamicLightSource>();
 
         HandleNewWorld();
     }
@@ -161,9 +229,42 @@ public class LightController : MonoBehaviour
         bgLightMapTex.SetPixel(x, y, alphaAdjustedColor);
     }
 
-    void ApplyLightTextureUpdates() {
+    void QueueChunkLightTextureUpdate(int x, int y, Color newColor) {
+        Color alphaAdjustedColor = GetLightAlpha(newColor);
+        if (world_bg[x, y] == 0 && world_fg[x, y] == 0) {
+            alphaAdjustedColor = Color.white;
+        }
+
+        int chunkToUpdate = WorldController.GetChunk(x, y);
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunkToUpdate);
+        chunkLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, alphaAdjustedColor);
+        chunksToUpdate[chunkToUpdate] = true;
+    }
+
+    void QueueChunkBGLightTextureUpdate(int x, int y, Color newColor) {
+        Color alphaAdjustedColor = GetLightAlpha(newColor);
+        if (world_bg[x, y] == 0 && world_fg[x, y] == 0) {
+            alphaAdjustedColor = Color.white;
+        }
+
+        int chunkToUpdate = WorldController.GetChunk(x, y);
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunkToUpdate);
+        chunkBGLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, alphaAdjustedColor);
+        chunksToUpdate[chunkToUpdate] = true;
+    }
+
+    void ApplyTextureLightUpdates() {
         lightMapTex.Apply();
         bgLightMapTex.Apply();
+    }
+
+    void ApplyChunkTextureLightUpdates() {
+        foreach (int chunk in chunksToUpdate.Keys) {
+            chunkLightTexes[chunk].Apply();
+            chunkBGLightTexes[chunk].Apply();
+        }
+
+        chunksToUpdate.Clear();
     }
 
     public void HandleNewWorld() {
@@ -195,7 +296,7 @@ public class LightController : MonoBehaviour
                 }
         }
 
-        ApplyLightTextureUpdates();
+        ApplyChunkTextureLightUpdates();
     }
 
     public void HandleNewBlock(int x, int y, int newTile, int bgTile) {
@@ -224,8 +325,8 @@ public class LightController : MonoBehaviour
                             Mathf.Clamp(currentColor.g + colorIncrement, 0f, 1f),
                             Mathf.Clamp(currentColor.b + colorIncrement, 0f, 1f));
 
-                        QueueLightTextureUpdate(x, y, currentColor);
-                        QueueBGLightTextureUpdate(x, y, currentColor);
+                        QueueChunkLightTextureUpdate(x, y, currentColor);
+                        QueueChunkBGLightTextureUpdate(x, y, currentColor);
 
                         // Create a light source to update light values, then remove it
                         LightSource source = CreateLightSource(new Vector3Int(x, y, 0), currentColor, 1f);
@@ -267,8 +368,8 @@ public class LightController : MonoBehaviour
                 }
             }
         } else {
-            QueueLightTextureUpdate(x, y, Color.black);
-            QueueBGLightTextureUpdate(x, y, Color.black);
+            QueueChunkLightTextureUpdate(x, y, Color.black);
+            QueueChunkBGLightTextureUpdate(x, y, Color.black);
 
             // Mark the possible air blocks around it as light sources
             Vector3Int tilePosition = new Vector3Int(x, y, 0);
@@ -294,10 +395,10 @@ public class LightController : MonoBehaviour
             Destroy(existingLight.gameObject);
         }
 
-        ApplyLightTextureUpdates();
+        ApplyChunkTextureLightUpdates();
     }
 
-    LightSource CreateLightSource(Vector3Int position, Color color, float strength, bool doUpdate = true) {
+    public LightSource CreateLightSource(Vector3Int position, Color color, float strength, bool doUpdate = true) {
         LightSource newLightSource = Instantiate(lightSourcePrefab, position, Quaternion.identity, lightSourceParent).GetComponent<LightSource>();
         newLightSource.InitializeLight(color, strength);
 
@@ -371,8 +472,8 @@ public class LightController : MonoBehaviour
             Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength));
         currentColor = lightValues[light.Position.x, light.Position.y];
         
-        QueueLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
-        QueueBGLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        QueueChunkLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        QueueChunkBGLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
 
         removalPositions.Clear();
         updateQueue.Clear();
@@ -392,8 +493,8 @@ public class LightController : MonoBehaviour
             Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength)
         );
         lightValues[light.Position.x, light.Position.y] = Color.black;
-        QueueLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
-        QueueBGLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        QueueChunkLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        QueueChunkBGLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
 
         removalQueue.Clear();
         removalQueue.Enqueue(lightNode);
@@ -534,8 +635,8 @@ public class LightController : MonoBehaviour
                 newLightNode.color = newColor;
                 lightValues[neighborX, neighborY] = newColor;
 
-                QueueLightTextureUpdate(neighborX, neighborY, newColor);
-                QueueBGLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueChunkLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueChunkBGLightTextureUpdate(neighborX, neighborY, newColor);
 
                 queue.Enqueue(newLightNode);
             }
@@ -663,8 +764,8 @@ public class LightController : MonoBehaviour
                 lightRemovalNode.color = currentColor;
                 lightValues[neighborX, neighborY] = newColor;
 
-                QueueLightTextureUpdate(neighborX, neighborY, newColor);
-                QueueBGLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueChunkLightTextureUpdate(neighborX, neighborY, newColor);
+                QueueChunkBGLightTextureUpdate(neighborX, neighborY, newColor);
 
                 queue.Enqueue(lightRemovalNode);
             } else {

@@ -15,10 +15,11 @@ SubShader {
     Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
     LOD 100
 
-    ZWrite Off
-    Blend Zero SrcColor
-
     Pass {
+
+        ZWrite Off
+        Blend DstColor Zero, Zero DstAlpha
+
         CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

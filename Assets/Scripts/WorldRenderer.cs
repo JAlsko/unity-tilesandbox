@@ -60,7 +60,7 @@ public class WorldRenderer : MonoBehaviour {
 			//Initializing chunk object array
 			for (int chunk = 0; chunk < chunkObjs.Length; chunk++) {
 				GameObject newChunkObj = Instantiate(defaultChunk);
-				Vector2Int newChunkPos = wCon.GetChunkPosition(chunk);
+				Vector2Int newChunkPos = WorldController.GetChunkPosition(chunk);
 				newChunkObj.transform.parent = chunkParent;
 				newChunkObj.name = "Chunk_" + chunk;
 				newChunkObj.transform.position = new Vector3(newChunkPos.x, newChunkPos.y, 0);
@@ -74,10 +74,13 @@ public class WorldRenderer : MonoBehaviour {
 				bgCol.size = new Vector2(chunkSize, chunkSize);
 				chunkBGs[chunk] = chunkBG;
 
-				Transform chunkLightmapObj = newChunkObj.transform.Find("Lightmap");
-				chunkLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, -1);
+				Transform chunkLightmapObj = newChunkObj.transform.Find("LightMap");
+				chunkLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkLightmapObj.localPosition.z);
 				chunkLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
-				chunkLightmaps[chunk] = chunkLightmapObj.GetComponent<MeshRenderer>();
+
+				Transform chunkBGLightmapObj = newChunkObj.transform.Find("BGLightMap");
+				chunkBGLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkBGLightmapObj.localPosition.z);
+				chunkBGLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
 			}
 		}
 
@@ -147,7 +150,7 @@ public class WorldRenderer : MonoBehaviour {
 
 			int vertexCount = chunkSize * chunkSize * 4;
 
-			Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+			Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
 
 			GameObject chunkObj = chunkObjs[chunk];
 			GameObject chunkBGObj = chunkBGs[chunk];

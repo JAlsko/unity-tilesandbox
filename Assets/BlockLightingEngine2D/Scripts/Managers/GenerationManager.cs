@@ -99,13 +99,13 @@ public class GenerationManager : Singleton<GenerationManager>
                 if (tileToSpawn != TileType.AIR)
                 {                    
                     tileMapBlocksFront.SetTile(tilePosition, tiles[(int)tileToSpawn]);
-                    if (LightingManager.Instance.LightColors[tilePosition.x, tilePosition.y] == Color.clear)                   
-                        tileMapBlocksFront.SetColor(tilePosition, Color.black);
+                    if (LightingManager.Instance.LightColors[tilePosition.x, tilePosition.y] == Color.clear)       {}            
+                        tileMapBlocksFront.SetColor(tilePosition, Color.white);
                 }
             }
         }
         // Done generation, now update all ambient lights (one block above each surface block)
-        LightingManager.Instance.UpdateAllLights(true);
+        //LightingManager.Instance.UpdateAllLights(true);
     }
 
     /// <summary>

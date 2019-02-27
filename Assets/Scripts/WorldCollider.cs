@@ -42,7 +42,7 @@ public class WorldCollider : MonoBehaviour
         //Simplified version of above function
         public void GenerateChunkColliders(int chunk, int[,] world) {
             GameObject chunkObj = wRend.GetChunkObject(chunk);
-            Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+            Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
             GenerateChunkColliders(chunkObj, world, chunkPos.x, chunkPos.y);
         }
 
@@ -52,7 +52,7 @@ public class WorldCollider : MonoBehaviour
                 for (int j = x-smallSearchRadius; j < x+smallSearchRadius; j++) {
                     int chunk = WorldController.GetChunk(j, i);
                     GameObject chunkObj = wRend.GetChunkObject(chunk);
-                    Vector2Int chunkPos = wCon.GetChunkPosition(chunk);
+                    Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
                     int inChunkX = j - chunkPos.x;
                     int inChunkY = i - chunkPos.y;
 

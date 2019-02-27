@@ -18,21 +18,17 @@ public class PlayerCollision : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D col) {
         if (col.tag == "DroppedItem") {
-            Debug.Log("Picking up item");
             DroppedItem droppedItem = col.GetComponent<DroppedItem>();
-            //droppedItem.DisableCollision();
             ItemObject leftOverItem = droppedItem.GetDroppedItem();
             if (leftOverItem == null) {
-                Debug.Log("Trying to pickup null item!");
+                //Debug.Log("Trying to pickup null item!");
                 return;
             }
             leftOverItem = pInv.TryAddItem(leftOverItem);
             if (leftOverItem == null) {
                 droppedItem.HideDroppedItem();
-                //droppedItem.EnableCollision();
             } else {
                 droppedItem.InitializeItem(leftOverItem);
-                //droppedItem.EnableCollision();
             }
         }
     }
