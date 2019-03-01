@@ -78,10 +78,6 @@ public class TerrainGenerator : MonoBehaviour
         return world;
     }
 
-    public int[,] GenerateWorldCaves(int[,] oldWorld) {
-        return DigCaves(oldWorld);
-    }
-
     Color[] generatePixelArray(int[,] tiles) {
         Color[] newArr = new Color[tiles.Length];
         int index = 0;

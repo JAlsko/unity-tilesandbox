@@ -9,77 +9,74 @@ using System;
 
 
 [RequireComponent(typeof(WorldGenerator))]
-[RequireComponent(typeof(WorldRenderer))]
+[RequireComponent(typeof(TileRenderer))]
 [RequireComponent(typeof(WorldCollider))]
 [RequireComponent(typeof(ColliderManager))]
 [RequireComponent(typeof(TileManager))]
 [RequireComponent(typeof(LightController))]
 [RequireComponent(typeof(ItemManager))]
 [RequireComponent(typeof(TerrainGenerator))]
+[RequireComponent(typeof(ChunkObjectsHolder))]
 public class WorldController : Singleton<WorldController> {
 
-    private static WorldController instance;
-
 	static string WORLD_SAVE_NAME = "worldSave.dat";
-	static int NULL_TILE = 0;
 
+	//Primary tile arrays
 	public int[,] world_fg;
 	public int[,] world_bg;
 
 	//Other world scripts
 	TerrainGenerator tGen;
-	WorldRenderer wRend;
+	TileRenderer wRend;
 	WorldCollider wCol;
 	TileManager tMgr;
 	LightController lCon;
 	ItemManager iMgr;
+	ChunkObjectsHolder cObjs;
 
 	public Transform player;
 
-	//Dimensions for world generation
-	public int worldWidth = 0;
-	public int worldHeight = 0;
+	//Dimensions for world generation (statics set on Start())
+	[SerializeField] private int worldWidth = 0;
+	static int s_worldWidth = 0;
+	[SerializeField] private int worldHeight = 0;
+	static int s_worldHeight = 0;
 
 	//Width/height of each chunk
 	public const int chunkSize = 64;
 
 	//Total number of chunks in world
-	public int totalChunks;
+	private int totalChunks;
 
 	//Lists to track which chunks are currently showing/hidden
-	public List<int> hiddenChunks;
-	public List<int> showingChunks;
+	private List<int> hiddenChunks;
+	private List<int> showingChunks;
 
 	//Temporary array to populate for functions that require array of tiles in a chunk
 	private int[,] chunkTiles;
 
 	//Tracks player chunk movement
-	[SerializeField] private int prevChunk;
-	[SerializeField] private int curChunk;
+	private int prevChunk;
+	private int curChunk;
 
 	//Number of chunks in each direction from player to render
 	public int chunkRenderRadius = 1;
-	int chunkRenderDiameter;
+	private int chunkRenderDiameter;
 
 	static int worldChunkWidth = 1;
 	static int worldChunkHeight = 1;
 
-	//Switch once world initialized
+	//World initialization flag
 	bool worldInitialized = false;
 
 	void Start () {
 		tGen = GetComponent<TerrainGenerator>();
-		wRend = GetComponent<WorldRenderer>();
+		wRend = GetComponent<TileRenderer>();
 		wCol = GetComponent<WorldCollider>();
 		tMgr = GetComponent<TileManager>();
 		lCon = GetComponent<LightController>();
 		iMgr = GetComponent<ItemManager>();
-
-		if (instance == null) {
-			instance = this;
-		} else if (instance != this) {
-			Destroy(this.gameObject);
-		}
+		cObjs = GetComponent<ChunkObjectsHolder>();
 
 		//Checks to make sure world generation size matches with chunk size
 		if (worldWidth % chunkSize != 0 || worldHeight % chunkSize != 0) {
@@ -94,16 +91,10 @@ public class WorldController : Singleton<WorldController> {
 
 		totalChunks = (worldWidth/chunkSize) * (worldHeight/chunkSize);
 
-		//Load world on start
-		//LoadWorld();
-
-		//Initialize chunkTiles temp array
 		chunkTiles = new int[chunkSize, chunkSize];
 
-		//Variable to avoid doing radius->diameter calculation repeatedly
 		chunkRenderDiameter = (chunkRenderRadius*2)+1;
 
-		//Generate Colliders -> Evaluate Rule Tiles -> Render Tiles
 		StartupWorld();
 	}
 	
@@ -115,17 +106,21 @@ public class WorldController : Singleton<WorldController> {
 		GetCurrentChunk();
 	}
 
-    public static WorldController Instance {
-        get {
-            return instance;
-        }
-    }
-
 	//World Initialization Functions
 	//-------------------------------------------------------------------------------
-		void StartupWorld() {
-			CheckIfWorldExists();
-			InitializeWorldBounds();
+		/// <summary>
+        /// Initialization function for all world scripts.
+		/// Standardizes script initialization order instead of relying on 'Start()'.
+        /// </summary>
+        /// <returns></returns>
+		void StartupWorld(int[,] newWorld = null, int[,] newWorldBG = null) {
+			if (newWorld == null) {
+				NewWorld();
+			} else {
+				world_fg = newWorld;
+				world_bg = newWorldBG;
+			}
+			InitializeChunks();
 			PlacePlayer();
 			PackTextures();
 			GenerateColliders();
@@ -135,8 +130,11 @@ public class WorldController : Singleton<WorldController> {
 			worldInitialized = true;
 		}
 
-		[ContextMenu("CheckIfWorldExists")]
-		public void CheckIfWorldExists() {
+		/// <summary>
+        /// Gets a new world from TerrainGenerator.
+        /// </summary>
+        /// <returns></returns>
+		public void NewWorld() {
 			if (world_fg == null) {
 				Debug.Log("Null world! Generating new one!");
 				world_fg = tGen.GenerateNewWorld();
@@ -145,39 +143,62 @@ public class WorldController : Singleton<WorldController> {
 			}
 		}
 
-		void InitializeWorldBounds() {
+		/// <summary>
+        /// Initializes chunk GameObjects in ChunkObjectHolder
+        /// </summary>
+        /// <returns></returns>
+		void InitializeChunks() {
 			worldChunkWidth = (world_fg.GetUpperBound(0)+1)/chunkSize;
 			worldChunkHeight = (world_fg.GetUpperBound(1)+1)/chunkSize;
 
 			//Once world bounds are set, we need to initialize the chunk objects (before collider generation)
-			wRend.InitializeChunkObjects(world_fg);
+			cObjs.InitializeChunkObjects();
 		}
 
+		//Placeholder player spawn
 		void PlacePlayer() {
-			player.position = (Vector3.up * (worldHeight + chunkSize/2));
+			player.position = (Vector3.up * (worldHeight));
 		}
 
+		/// <summary>
+        /// Packs TileManager's textures (before rendering tiles).
+        /// </summary>
+        /// <returns></returns>
 		void PackTextures() {
 			tMgr.PackRuleTileTextures();
 		}
 
+		/// <summary>
+        /// Generates all initial colliders for new world.
+        /// </summary>
+        /// <returns></returns>
 		void GenerateColliders() {
 			for (int chunk = 0; chunk < totalChunks; chunk++) {
-				Vector2Int chunkPos = GetChunkPosition(chunk);
-				GameObject chunkObj = wRend.GetChunkObject(chunk);
-				wCol.GenerateChunkColliders(chunkObj, world_fg, chunkPos.x, chunkPos.y);
+				wCol.GenerateChunkColliders(chunk);
 			}
 		}
 
+		/// <summary>
+        /// Handles initial render of all chunk tiles.
+        /// </summary>
+        /// <returns></returns>
 		void RenderWorld() {
 			wRend.RenderAllChunks();
 			UpdateCulledChunks();
 		}
 
+		/// <summary>
+        /// Initializes lightmaps for all chunks.
+        /// </summary>
+        /// <returns></returns>
 		void GenerateLightMap() {
-			lCon.InitializeWorld(world_fg, world_bg);
+			lCon.InitializeWorld();
 		}
 
+		/// <summary>
+        /// Initializes ItemManager's item collection.
+        /// </summary>
+        /// <returns></returns>
 		void InitializeItems() {
 			iMgr.InitializeItemManager();
 		}
@@ -225,29 +246,38 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		public int[,] GetWorld(int worldLayer = 0) {
-			CheckIfWorldExists();
+			NewWorld();
 			return worldLayer == 0 ? world_fg : world_bg;
 		}
 	//
 
 	//Chunk Handling
 	//-------------------------------------------------------------------------------
-		//Function to get number of chunks in an entire world row
+		public static int GetWorldWidth() {
+			return s_worldWidth;
+		}
+
+		public static int GetWorldHeight() {
+			return s_worldHeight;
+		}
+
 		public static int GetWorldChunkWidth() {
 			return worldChunkWidth;
 		}
 
-		//Function to get number of chunks in an entire world column
 		public static int GetWorldChunkHeight() {
 			return worldChunkHeight;
 		}
 
-		//Public function to get total number of chunks
 		public static int GetChunkCount() {
 			return worldChunkWidth * worldChunkHeight;
 		}
 
-		//Update function to keep track of player's current chunk
+		/// <summary>
+        /// Uses player's position to get the current chunk the player is in.null
+		/// If the new chunk is actually different, updates the visible chunks.
+        /// </summary>
+        /// <returns></returns>
 		int GetCurrentChunk() {
 			prevChunk = curChunk;
 			int currentChunk = 0;
@@ -264,7 +294,12 @@ public class WorldController : Singleton<WorldController> {
 			return currentChunk;
 		}
 
-		//Public function to get appropriate chunk from x-y position
+		/// <summary>
+        /// Uses tile position to get the appropriate containing chunk.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
 		public static int GetChunk(int x, int y) {
 			int chunk = 0;
 
@@ -276,16 +311,21 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		public Transform GetChunkParent(int chunk) {
-			return wRend.GetChunkObject(chunk).transform;
+			return cObjs.GetChunkObject(chunk).transform;
 		}
 
 		public List<Transform> GetAllChunkParents() {
-			return wRend.GetAllChunkParents();
+			return cObjs.GetAllChunkParents();
 		}
 
-		//Public function to get world tiles from one chunk
+		/// <summary>
+        /// Returns a 2D array of a chunk's individual tiles.
+        /// </summary>
+        /// <param name="chunk"></param>
+        /// <param name="worldLayer"></param>
+        /// <returns></returns>
 		public int[,] GetChunkTiles(int chunk, int worldLayer = 0) {
-			CheckIfWorldExists();
+			NewWorld();
 			Vector2Int chunkPos = GetChunkPosition(chunk);
 
 			chunkTiles = new int[chunkSize, chunkSize];
@@ -306,17 +346,23 @@ public class WorldController : Singleton<WorldController> {
 			return chunkTiles;
 		}
 
-		//Public function to get bottom-left coordinates of one chunk
+		/// <summary>
+        /// Gets bottom-left tile coordinates of a given chunk.
+        /// </summary>
+        /// <param name="chunk"></param>
+        /// <returns></returns>
 		public static Vector2Int GetChunkPosition(int chunk) {
 			int adjustedX = chunk % worldChunkWidth;
 			int adjustedY = chunk / worldChunkWidth;
 			return new Vector2Int(adjustedX * chunkSize, adjustedY * chunkSize);
 		}
 
-		//Used when player enters a new chunk; returns only the new chunks that have to be shown
-		int[] GetChunksToRender(int currentChunk) {
-			CheckIfWorldExists();
-
+		/// <summary>
+        /// Called when entering a new chunk. Determines which new chunks must be shown.
+        /// </summary>
+        /// <param name="currentChunk"></param>
+        /// <returns></returns>
+		int[] GetChunksToShow(int currentChunk) {
 			int numChunks = chunkRenderDiameter*chunkRenderDiameter;
 			int[] chunksToShow = new int[numChunks];
 
@@ -349,12 +395,13 @@ public class WorldController : Singleton<WorldController> {
 			return chunksToShow;
 		}
 
-		//If entering a new chunk, determine which chunks must be shown and which must be hidden
+		/// <summary>
+        /// Shows and hides chunks based on player entering new chunks.
+        /// </summary>
+        /// <returns></returns>
 		void UpdateCulledChunks() {
-			CheckIfWorldExists();
-
-			int[] chunksShowing = GetArrFromList(showingChunks);
-			int[] chunksToShow = GetChunksToRender(curChunk);
+			int[] chunksShowing = Helpers.GetArrFromList(showingChunks);
+			int[] chunksToShow = GetChunksToShow(curChunk);
 			int[] oldChunksToShow = new int[chunksToShow.Length];
 			chunksToShow.CopyTo(oldChunksToShow, 0);
 
@@ -364,26 +411,32 @@ public class WorldController : Singleton<WorldController> {
 			//Debug.Log("Chunks to hide: " + ArrToString(chunksToHide));
 			//Debug.Log("Chunks to show: " + ArrToString(chunksToShow));
 
-			wRend.RenderChunks(chunksToShow, chunksToHide);
+			cObjs.UpdateShownChunks(chunksToShow, chunksToHide);
 
-			showingChunks = GetListFromArr(oldChunksToShow);
+			showingChunks = Helpers.GetListFromArr(oldChunksToShow);
 		}
 
 	//
 
 	//Tile Manipulator Functions
 	//-------------------------------------------------------------------------------
-		//Base tile manipulator
+		/// <summary>
+        /// Changes a single tile to a specified value.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="newTile"></param>
+        /// <returns></returns>
 		private void ModifyTile(int x, int y, int newTile) {
 			world_fg[x, y] = newTile;
 
 			int chunkToModify = GetChunk(x, y);
 
 			//Re-render tile's chunk
-			wRend.RenderChunk(chunkToModify);
+			wRend.RenderChunkTiles(chunkToModify);
 
 			//Re-render tile's lightmap
-			lCon.HandleNewBlock(x, y, newTile, world_bg[x, y]);
+			lCon.HandleNewTile(x, y, newTile, world_bg[x, y]);
 
 			//Update tile's chunk's collider (doesn't update relevant colliders in other chunks)
 			//wCol.GenerateChunkColliders(chunkToModify, world);
@@ -392,7 +445,12 @@ public class WorldController : Singleton<WorldController> {
 			wCol.GenerateTileColliders(world_fg, x, y);
 		}
 
-		//Public tile remover function
+		/// <summary>
+        /// Sets a specified tile to 0. Public function for world modification.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
 		public int RemoveTile(int x, int y) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				return -1;
@@ -406,7 +464,13 @@ public class WorldController : Singleton<WorldController> {
 			return blockID;
 		}
 
-		//Public tile addition function
+		/// <summary>
+        /// Adds a specified tile value. Public function for world modification.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="newTile"></param>
+        /// <returns></returns>
 		public int AddTile(int x, int y, int newTile) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				return -1;
@@ -419,7 +483,13 @@ public class WorldController : Singleton<WorldController> {
 			return 1;
 		}
 
-		//Public tile/nontile check-er method
+		/// <summary>
+        /// Checks if a tile exists in the specified world layer (FG/BG)
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="worldLayer"></param>
+        /// <returns></returns>
 		public bool isTile(int x, int y, int worldLayer = 0) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				Debug.Log("Out of map tile " + x + ", " + y);
@@ -429,6 +499,12 @@ public class WorldController : Singleton<WorldController> {
 			return tileExists;
 		}
 
+		/// <summary>
+        /// Checks if a position is empty of both background and foreground tiles.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
 		public bool isSky(int x, int y) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
 				return false;
@@ -437,34 +513,34 @@ public class WorldController : Singleton<WorldController> {
 			return skyTile;
 		}
 
-	//
-	
-	//Helper Methods
-	//-------------------------------------------------------------------------------
-		List<int> GetListFromArr(int[] arr) {
-			List<int> newList = new List<int>();
-			foreach (int i in arr) {
-				newList.Add(i);
-			}
-			return newList;
-		}
+		/// <summary>
+        /// Checks if a tile has any empty neighbors (and should therefore have a collider)
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public bool isTileOpen(int x, int y) {
+            if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
+                return false;
+            }
+            if (world_fg[x,y] == 0) {
+                return false;
+            }
 
-		int[] GetArrFromList(List<int> li) {
-			int[] newArr = new int[li.Count];
-			int index = 0;
-			foreach (int i in li) {
-				newArr[index] = i;
-				index++;
-			}
-			return newArr;
-		}
+            for (int i = x-1; i < x+2; i++) {
+                for (int j = y-1; j < y+2; j++) {
+                    if (i > world_fg.GetUpperBound(0) || i < world_fg.GetLowerBound(0) || j > world_fg.GetUpperBound(1) || j < world_fg.GetLowerBound(1)) {
+                        return true;
+                    }       
 
-		string ArrToString(int[] arr) {
-			string arrString = "";
-			foreach (int i in arr) {
-				arrString += (i + " ");
-			}
-			return arrString;
-		}
+                    if (world_fg[i,j] == 0) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
 	//
 }

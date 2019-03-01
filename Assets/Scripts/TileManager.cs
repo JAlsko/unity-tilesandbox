@@ -37,7 +37,7 @@ public class TileManager : MonoBehaviour
     //Keeps track of texture pack status
     private bool texturesPacked = false;
 
-    private WorldRenderer wRend;
+    private TileRenderer wRend;
 
     //Array of rotated indices for tile neighbors and uv coordinates
     private static readonly int[,] AngledNeighborIndices =
@@ -56,7 +56,7 @@ public class TileManager : MonoBehaviour
 
     void Start()
     {
-        wRend = GetComponent<WorldRenderer>();
+        wRend = GetComponent<TileRenderer>();
     }
 
     void Update()
