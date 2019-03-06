@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerDetection : MonoBehaviour
 {
+    public List<int> nearbyCraftTiers = new List<int>();
+
     public void OnChildTriggerEnter2D(Collider2D col) {
         if (col.tag == "DroppedItem") {
             if (col.GetComponent<DroppedItem>()) {

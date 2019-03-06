@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class PlayerInventory : MonoBehaviour
 {
@@ -203,4 +204,40 @@ public class PlayerInventory : MonoBehaviour
         }
         return itemToGive;
     }
+
+    //Crafting
+    //-------------------------------------------------------------------
+        public List<CraftRecipe> GetNearbyCraftables(List<ItemObject> myIngredients, List<CraftRecipe> allRecipes, List<int> nearbyCraftingTiers) {
+            List<CraftRecipe> craftables = new List<CraftRecipe>();
+            
+            nearbyCraftingTiers.Sort();
+            int maxBaseTier = nearbyCraftingTiers[nearbyCraftingTiers.Count-1];
+            foreach (CraftRecipe recipe in allRecipes) {
+                bool haveIngredients = true;
+                foreach (ItemObject ingredient in recipe.ingredients) {
+                    if (GetItemCount(ingredient.id) < ingredient.currentStack) {
+                        haveIngredients = false;
+                        break;
+                    }
+                }
+                bool matchingTier = recipe.craftingTier >= 0 ? maxBaseTier >= recipe.craftingTier : nearbyCraftingTiers.Contains(recipe.craftingTier);
+                if (haveIngredients && matchingTier) {
+                    craftables.Add(recipe);
+                }
+            }
+            
+            return craftables;
+        }
+
+        int GetItemCount(int itemID) {
+            int totalItems = 0;
+            foreach (ItemObject item in inventory) {
+                if (item.id == itemID) {
+                    totalItems += item.currentStack;
+                }
+            }
+
+            return totalItems;
+        }
+    //--------------------------------------------------------------------
 }

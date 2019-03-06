@@ -71,6 +71,9 @@ public class Helpers : MonoBehaviour
     }
 
     public static int[] GetArrFromList(List<int> li) {
+        if (li == null) {
+            return null;
+        }
         int[] newArr = new int[li.Count];
         int index = 0;
         foreach (int i in li) {

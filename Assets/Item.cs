@@ -17,6 +17,7 @@ public abstract class Item {
     public abstract int Use();
 }
 
+[Serializable]
 public class ItemObject {
     public ItemObject(int id, int currentStack) {
         this.id = id;
@@ -38,6 +39,19 @@ public class ItemObject {
     
     public int id;
     public int currentStack;
+}
+
+[Serializable]
+public class CraftRecipe {
+	public List<ItemObject> ingredients;
+	public ItemObject output;
+	public int craftingTier;
+	
+	public CraftRecipe(List<ItemObject> ingredients, ItemObject output, int craftingTier = 0) {
+		this.ingredients = ingredients;
+		this.output = output;
+		this.craftingTier = craftingTier;
+	}
 }
 
 [Serializable]

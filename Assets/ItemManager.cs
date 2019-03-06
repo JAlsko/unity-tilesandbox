@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class ItemManager : MonoBehaviour
 {
@@ -19,6 +20,8 @@ public class ItemManager : MonoBehaviour
     public List<BlockItem> blockItems = new List<BlockItem>();
     private static Dictionary<int, Item> items;
     private static Dictionary<int, BlockItem> blocks;
+
+    public List<CraftRecipe> allRecipes = new List<CraftRecipe>();
 
     public void InitializeItemManager()
     {

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class ChunkObjectsHolder : MonoBehaviour
 {
@@ -12,12 +13,8 @@ public class ChunkObjectsHolder : MonoBehaviour
     GameObject[] chunkObjs;
 	GameObject[] chunkBGs;
 	MeshRenderer[] chunkLightmaps;
-
-    void Start()
-    {
-        chunkObjs = new GameObject[0];
-		chunkLightmaps = new MeshRenderer[0];
-    }
+	MeshRenderer[] chunkBGLightmaps;
+    Tilemap[] chunkLiquidTilemaps;
 
     public void InitializeChunkObjects() {
         int chunkSize = WorldController.chunkSize;
@@ -26,6 +23,8 @@ public class ChunkObjectsHolder : MonoBehaviour
         chunkObjs = new GameObject[worldChunkCount];
         chunkBGs = new GameObject[worldChunkCount];
         chunkLightmaps = new MeshRenderer[worldChunkCount];
+        chunkBGLightmaps = new MeshRenderer[worldChunkCount];
+        chunkLiquidTilemaps = new Tilemap[worldChunkCount];
 
         //Initializing chunk object array
         for (int chunk = 0; chunk < worldChunkCount; chunk++) {
@@ -47,10 +46,15 @@ public class ChunkObjectsHolder : MonoBehaviour
             Transform chunkLightmapObj = newChunkObj.transform.Find("LightMap");
             chunkLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkLightmapObj.localPosition.z);
             chunkLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
+            chunkLightmaps[chunk] = chunkLightmapObj.GetComponent<MeshRenderer>();
 
             Transform chunkBGLightmapObj = newChunkObj.transform.Find("BGLightMap");
             chunkBGLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkBGLightmapObj.localPosition.z);
             chunkBGLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
+            chunkBGLightmaps[chunk] = chunkBGLightmapObj.GetComponent<MeshRenderer>();
+
+            Tilemap chunkLiquidTilemap = newChunkObj.transform.Find("LiquidTilemap").GetComponentInChildren<Tilemap>();
+            chunkLiquidTilemaps[chunk] = chunkLiquidTilemap;
         }
     }
 
@@ -60,6 +64,14 @@ public class ChunkObjectsHolder : MonoBehaviour
 
     public GameObject GetChunkBG(int chunk) {
         return chunkBGs[chunk];
+    }
+
+    public Tilemap GetChunkLiquidTilemap(int chunk) {
+        if (chunk < 0 || chunk > WorldController.GetChunkCount()) {
+            Debug.Log("Trying to get tilemap for chunk " + chunk);
+            return null;
+        }
+        return chunkLiquidTilemaps[chunk];
     }
 
     public void HideChunk(int chunk) {

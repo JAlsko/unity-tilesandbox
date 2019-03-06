@@ -50,6 +50,8 @@ public class CursorController : MonoBehaviour
     public float clickActionMinSpeed = 0.1f;
     public float clickActionMaxSpeed = 0.01f;
 
+    private float heldLightVal = 0;
+
     void Start()
     {
         playerHeldItemLight.enabled = false;
@@ -231,10 +233,10 @@ public class CursorController : MonoBehaviour
             heldItemIcon.sprite = newIcon;
             heldItemCount.text = heldItem.currentStack > 1 ? heldItem.currentStack + "" : "";
 
-            float lightVal = ItemManager.GetItem(heldItem.id).lightStrength;
-            if (lightVal > 0) {
+            heldLightVal = ItemManager.GetItem(heldItem.id).lightStrength;
+            if (heldLightVal > 0) {
                 Color lightColor = ItemManager.GetItem(heldItem.id).lightColor;
-                playerHeldItemLight.startLightStrength = lightVal;
+                playerHeldItemLight.startLightStrength = heldLightVal;
                 playerHeldItemLight.lightColor = lightColor;
                 playerHeldItemLight.enabled = true;
                 playerHeldItemLight.EnableLight();
@@ -247,7 +249,10 @@ public class CursorController : MonoBehaviour
         heldItemIcon.sprite = nullSprite;
         heldItemCount.text = "";
 
-        playerHeldItemLight.DisableLight();
+        if (heldLightVal > 0) {
+            playerHeldItemLight.DisableLight();
+            heldLightVal = 0;
+        }
     }
 
     bool CanPerformClickAction() {

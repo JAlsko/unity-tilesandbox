@@ -45,9 +45,7 @@ public class TerrainGenerator : MonoBehaviour
 	}
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            DrawNewWorld();
-        }
+        
     }
 	
     [ContextMenu("Draw new world")]

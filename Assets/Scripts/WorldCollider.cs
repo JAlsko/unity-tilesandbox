@@ -5,7 +5,6 @@ using UnityEngine;
 [RequireComponent(typeof(ChunkObjectsHolder))]
 public class WorldCollider : MonoBehaviour
 {
-    public GameObject colliderParent;
     int smallSearchRadius = 1;
 
     //A dictionary of colliders indexed by a hash of their position
@@ -57,8 +56,8 @@ public class WorldCollider : MonoBehaviour
         /// <param name="y"></param>
         /// <returns></returns>
         public void GenerateTileColliders(int[,] world, int x, int y) {
-            for (int i = y-smallSearchRadius; i < y+smallSearchRadius; i++) {
-                for (int j = x-smallSearchRadius; j < x+smallSearchRadius; j++) {
+            for (int i = y-smallSearchRadius; i <= y+smallSearchRadius; i++) {
+                for (int j = x-smallSearchRadius; j <= x+smallSearchRadius; j++) {
                     int chunk = WorldController.GetChunk(j, i);
                     GameObject chunkObj = cObjs.GetChunkObject(chunk);
                     Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);

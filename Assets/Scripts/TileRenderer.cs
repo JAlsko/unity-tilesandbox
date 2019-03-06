@@ -219,7 +219,7 @@ public class TileRenderer : MonoBehaviour {
 		}
 
 		void ShowChunk(int chunk) {
-			cObjs.HideChunk(chunk);
+			cObjs.ShowChunk(chunk);
 		}
 	//
 }

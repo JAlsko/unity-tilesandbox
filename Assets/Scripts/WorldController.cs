@@ -11,12 +11,12 @@ using System;
 [RequireComponent(typeof(WorldGenerator))]
 [RequireComponent(typeof(TileRenderer))]
 [RequireComponent(typeof(WorldCollider))]
-[RequireComponent(typeof(ColliderManager))]
 [RequireComponent(typeof(TileManager))]
 [RequireComponent(typeof(LightController))]
 [RequireComponent(typeof(ItemManager))]
 [RequireComponent(typeof(TerrainGenerator))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
+[RequireComponent(typeof(LiquidController))]
 public class WorldController : Singleton<WorldController> {
 
 	static string WORLD_SAVE_NAME = "worldSave.dat";
@@ -30,9 +30,10 @@ public class WorldController : Singleton<WorldController> {
 	TileRenderer wRend;
 	WorldCollider wCol;
 	TileManager tMgr;
-	LightController lCon;
+	LightController ltCon;
 	ItemManager iMgr;
 	ChunkObjectsHolder cObjs;
+	LiquidController lqCon;
 
 	public Transform player;
 
@@ -74,9 +75,10 @@ public class WorldController : Singleton<WorldController> {
 		wRend = GetComponent<TileRenderer>();
 		wCol = GetComponent<WorldCollider>();
 		tMgr = GetComponent<TileManager>();
-		lCon = GetComponent<LightController>();
+		ltCon = GetComponent<LightController>();
 		iMgr = GetComponent<ItemManager>();
 		cObjs = GetComponent<ChunkObjectsHolder>();
+		lqCon = GetComponent<LiquidController>();
 
 		//Checks to make sure world generation size matches with chunk size
 		if (worldWidth % chunkSize != 0 || worldHeight % chunkSize != 0) {
@@ -88,6 +90,9 @@ public class WorldController : Singleton<WorldController> {
 			worldWidth = chunkSize;
 			worldHeight = chunkSize;
 		}
+
+		s_worldWidth = worldWidth;
+		s_worldHeight = worldHeight;
 
 		totalChunks = (worldWidth/chunkSize) * (worldHeight/chunkSize);
 
@@ -126,6 +131,7 @@ public class WorldController : Singleton<WorldController> {
 			GenerateColliders();
 			RenderWorld();
 			GenerateLightMap();
+			InitializeLiquids();
 			InitializeItems();
 			worldInitialized = true;
 		}
@@ -192,7 +198,15 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		void GenerateLightMap() {
-			lCon.InitializeWorld();
+			ltCon.InitializeWorld();
+		}
+
+		/// <summary>
+        /// Initializes liquid map.
+        /// </summary>
+        /// <returns></returns>
+		void InitializeLiquids() {
+			lqCon.InitializeLiquids();
 		}
 
 		/// <summary>
@@ -405,13 +419,18 @@ public class WorldController : Singleton<WorldController> {
 			int[] oldChunksToShow = new int[chunksToShow.Length];
 			chunksToShow.CopyTo(oldChunksToShow, 0);
 
-			int[] chunksToHide = (chunksShowing.Except(chunksToShow)).ToArray();
-			chunksToShow = (chunksToShow.Except(chunksShowing)).ToArray();
-
+			int[] chunksToHide;
+			if (chunksShowing != null) {
+				chunksToHide = (chunksShowing.Except(chunksToShow)).ToArray();
+				chunksToShow = (chunksToShow.Except(chunksShowing)).ToArray();
+			} else {
+				chunksToHide = new int[0];
+			}
 			//Debug.Log("Chunks to hide: " + ArrToString(chunksToHide));
 			//Debug.Log("Chunks to show: " + ArrToString(chunksToShow));
 
 			cObjs.UpdateShownChunks(chunksToShow, chunksToHide);
+			lqCon.SetChunksToRender(chunksShowing);
 
 			showingChunks = Helpers.GetListFromArr(oldChunksToShow);
 		}
@@ -436,10 +455,11 @@ public class WorldController : Singleton<WorldController> {
 			wRend.RenderChunkTiles(chunkToModify);
 
 			//Re-render tile's lightmap
-			lCon.HandleNewTile(x, y, newTile, world_bg[x, y]);
+			ltCon.HandleNewTile(x, y, newTile, world_bg[x, y]);
 
-			//Update tile's chunk's collider (doesn't update relevant colliders in other chunks)
-			//wCol.GenerateChunkColliders(chunkToModify, world);
+			//Remove water from position if placing new block
+			if (newTile != 0)
+				lqCon.EmptyLiquidBlock(x, y);
 			
 			//Update colliders of tiles surrounding modified tile (updates other chunks' colliders if necessary)
 			wCol.GenerateTileColliders(world_fg, x, y);
