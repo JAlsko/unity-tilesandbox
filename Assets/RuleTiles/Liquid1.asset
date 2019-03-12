@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Liquid1
   m_EditorClassIdentifier: 
   m_Sprite: {fileID: 21300000, guid: 134510a037dbeed46838f2b9d1e485bb, type: 3}
-  m_Color: {r: 0.18396229, g: 0.5864654, b: 1, a: 0.7058824}
+  m_Color: {r: 0.23113209, g: 0.7163457, b: 1, a: 0.5882353}
   m_Transform:
     e00: 1
     e01: 0
