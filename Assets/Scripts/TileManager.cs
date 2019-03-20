@@ -6,17 +6,20 @@ using System;
 using UnityEngine.Tilemaps;
 
 [Serializable]
-public class TileData {
-    public RuleTile tileBase;
+public class TileInfo {
+    public MeshRuleTile tileBase;
+    public RuleTile ruleTileBase;
     public float lightStrength;
     public Color lightColor = Color.white;
-    public int dropItem_id;
+    public float maxTileHealth = 10f;
+    public int digToolTier = 0;
+    public Item dropItem;
 }
 
-public class TileManager : MonoBehaviour
+public class TileManager : Singleton<TileManager>
 {
     //List of rule tile assets corresponding to integer tile indices
-    public List<TileData> allTiles = new List<TileData>();
+    public List<TileInfo> allTiles = new List<TileInfo>();
 
     //Array and list of total textures to pack to atlas (List converted to array on PackTexture call)
     public Texture2D[] texturesToPack;
@@ -73,13 +76,13 @@ public class TileManager : MonoBehaviour
             atlasTex.filterMode = FilterMode.Point;
             
             int ruleTileIndex = 0;
-            foreach (TileData tile in allTiles) {
+            foreach (TileInfo tile in allTiles) {
                 if (tile == null) {
                     Debug.Log("Null rule tile at index " + ruleTileIndex);
                     return;
                 }
 
-                foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
+                foreach (MeshRuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                     int spriteIndex = 0;
                     foreach (Texture2D sprite in tr.m_Sprites) {
                         int spriteCount = texturesToPackList.Count;
@@ -105,9 +108,9 @@ public class TileManager : MonoBehaviour
             }
 
             int tileIndex = world[x, y];
-            TileData tile = allTiles[tileIndex];
+            TileInfo tile = allTiles[tileIndex];
             int[] neighbors = GetNeighbors(world, x, y);
-            foreach (RuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
+            foreach (MeshRuleTile.TilingRule tr in tile.tileBase.m_TilingRules) {
                 int matchedAngle = CheckRule(tr, neighbors);
                 if (matchedAngle != -1) {
                     return GetCoordsFromRule(tr, matchedAngle);
@@ -122,7 +125,7 @@ public class TileManager : MonoBehaviour
             return texturesPacked;
         }
 
-        public TileData GetTile(int index) {
+        public TileInfo GetTile(int index) {
             return allTiles[index];
         }
 
@@ -131,8 +134,8 @@ public class TileManager : MonoBehaviour
     //Internal methods
     //-------------------------------------------------------------------------------
         //Using a specific matched tile rule, pick one of its textures and return the uv coordinates
-        Vector2[] GetCoordsFromRule(RuleTile.TilingRule tr, int angle) {
-            if (tr.m_Output == RuleTile.TilingRule.OutputSprite.Single) {
+        Vector2[] GetCoordsFromRule(MeshRuleTile.TilingRule tr, int angle) {
+            if (tr.m_Output == MeshRuleTile.TilingRule.OutputSprite.Single) {
                 return GetUVCoords(tr.m_SpriteAtlasIndices[0], angle);
             } else {
                 int randomTexture = UnityEngine.Random.Range(0, tr.m_SpriteAtlasIndices.Length);
@@ -140,7 +143,7 @@ public class TileManager : MonoBehaviour
             }
         }
 
-        Vector2[] GetCoordsFromRule(RuleTile.TilingRule tr) {
+        Vector2[] GetCoordsFromRule(MeshRuleTile.TilingRule tr) {
             return GetCoordsFromRule(tr, 0);
         }
 
@@ -184,9 +187,9 @@ public class TileManager : MonoBehaviour
             }
 
         //Determine matching rule for specific rule tile based on neighbor states
-        int CheckRule(RuleTile.TilingRule tr, int[] neighbors) {
+        int CheckRule(MeshRuleTile.TilingRule tr, int[] neighbors) {
             int maxAngle = 1;
-            if (tr.m_RuleTransform == RuleTile.TilingRule.Transform.Rotated) {
+            if (tr.m_RuleTransform == MeshRuleTile.TilingRule.Transform.Rotated) {
                 maxAngle = 270;
             }
 
@@ -200,17 +203,17 @@ public class TileManager : MonoBehaviour
         }
 
         //Basic neighbor check
-        bool RuleMatch(RuleTile.TilingRule tr, int[] neighbors, int angle) {
+        bool RuleMatch(MeshRuleTile.TilingRule tr, int[] neighbors, int angle) {
             int[] ruleNeighbors = tr.m_Neighbors;
             for (int neighbor = 0; neighbor < neighbors.Length; neighbor++) {
                 int rotatedNeighbor = AngledNeighborIndices[angle/90, neighbor];
-                if (ruleNeighbors[neighbor] == RuleTile.TilingRule.Neighbor.DontCare) {
+                if (ruleNeighbors[neighbor] == MeshRuleTile.TilingRule.Neighbor.DontCare) {
                     continue;
                 }
-                if (ruleNeighbors[neighbor] == RuleTile.TilingRule.Neighbor.This) {
+                if (ruleNeighbors[neighbor] == MeshRuleTile.TilingRule.Neighbor.This) {
                     if (neighbors[rotatedNeighbor] == 0)
                         return false;
-                } else if (ruleNeighbors[neighbor] == RuleTile.TilingRule.Neighbor.NotThis) {
+                } else if (ruleNeighbors[neighbor] == MeshRuleTile.TilingRule.Neighbor.NotThis) {
                     if (neighbors[rotatedNeighbor] != 0) {
                         return false;
                     }

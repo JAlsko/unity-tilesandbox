@@ -33,8 +33,8 @@ public class PlayerMouseInput : MonoBehaviour
     void Update() {
         curMousePos = thisCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -transform.position.z));
         curMousePos = SimplifyMousePos(curMousePos);
-        curMousePos = AdjustMousePos(curMousePos, .5f);
-        tileSelectionBox.position = curMousePos;
+        Vector3 adjustedMousePos = AdjustMousePos(curMousePos, .5f);
+        tileSelectionBox.position = adjustedMousePos;
     }
 
     Vector3 SimplifyMousePos(Vector3 mousePos) {

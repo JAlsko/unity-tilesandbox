@@ -310,7 +310,7 @@ public class LightController : Singleton<LightController>
     /// <param name="bgTile"></param>
     /// <returns></returns>
     public void HandleNewTile(int x, int y, int newTile, int bgTile) {
-        TileData newTileData = tMgr.allTiles[newTile];
+        TileInfo newTileData = tMgr.allTiles[newTile];
 
 
         //Tile is removed...

@@ -120,7 +120,7 @@ public class LiquidController : MonoBehaviour
         //destinationMass = new float[WorldController.GetWorldWidth()+2, WorldController.GetWorldHeight()+2];
         
 
-        liquidTex = new Texture2D(WorldController.GetWorldWidth(), WorldController.GetWorldHeight(), TextureFormat.RGBA32, false);
+        /*liquidTex = new Texture2D(WorldController.GetWorldWidth(), WorldController.GetWorldHeight(), TextureFormat.RGBA32, false);
         //liquidTex.alphaIsTransparency = true;
         liquidTex.filterMode = FilterMode.Point;
 
@@ -128,7 +128,7 @@ public class LiquidController : MonoBehaviour
 
         Color32[] newPixels = generatePixelArray(liquidMass);
         liquidTex.SetPixels32(newPixels);
-        liquidTex.Apply();
+        liquidTex.Apply();*/
 
         initialized = true;
     }
@@ -150,10 +150,10 @@ public class LiquidController : MonoBehaviour
                 lastCalculationTime = elapsedTime;
                 float startTime = Time.realtimeSinceStartup;
                 LiquidSimulation(calculationIterations);
-                LiquidSimulation(calculationIterations);
-                LiquidSimulation(calculationIterations);
-                LiquidSimulation(calculationIterations);
-                LiquidSimulation(calculationIterations);
+                //LiquidSimulation(calculationIterations);
+                //LiquidSimulation(calculationIterations);
+                //LiquidSimulation(calculationIterations);
+                //LiquidSimulation(calculationIterations);
                 float calcTime = Time.realtimeSinceStartup-startTime;
                 totalCalculations += calculationIterations;
                 speedSum+=calcTime;

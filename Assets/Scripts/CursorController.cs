@@ -19,6 +19,8 @@ public class CursorController : MonoBehaviour
         PlaceSingleItem = 7,
     }
 
+    public PlayerInventory playerInv;
+
     public SpriteRenderer playerHeldItem;
     public DynamicLightSource playerHeldItemLight;
     public ItemObject heldItem = null;
@@ -43,14 +45,22 @@ public class CursorController : MonoBehaviour
     private ClickAction currentAction = ClickAction.Any;
     public float elapsedTime = 0;
     public float lastTime = 0;
-    public float clickActionSpeed = 0.1f;
+    public float inventoryActionSpeed = 0.1f;
     public int consecutiveClicks = 0;
     public int accelerationClickThreshold = 2;
-    public float clickActionAcceleration = 0.1f;
-    public float clickActionMinSpeed = 0.1f;
-    public float clickActionMaxSpeed = 0.01f;
+    public float inventoryActionAcceleration = 0.1f;
+    public float inventoryActionMinSpeed = 0.1f;
+    public float inventoryActionMaxSpeed = 0.01f;
+
+    public float itemActionSpeed = 0.1f;
 
     private float heldLightVal = 0;
+
+    private int selectedHotbarSlot = 0;
+    public float minScrollDelta = 0.1f;
+    public float scrollSpeed = 2;
+
+    private InventorySlotObject selectedInvSlot;
 
     void Start()
     {
@@ -62,8 +72,20 @@ public class CursorController : MonoBehaviour
         elapsedTime += Time.deltaTime;
         UpdateCursorPos();
         
+        if (Mathf.Abs(Input.mouseScrollDelta.y) > minScrollDelta) {
+            int oldSelectedHotbarSlot = selectedHotbarSlot;
+            selectedHotbarSlot = (selectedHotbarSlot + (int)(scrollSpeed * Input.mouseScrollDelta.y)) % playerInv.hotbarSize;
+            if (selectedHotbarSlot < 0)
+                selectedHotbarSlot = UIController.Instance.playerInv.hotbarSize-1;
+
+            selectedInvSlot = UIController.Instance.invSlotObjs[selectedHotbarSlot];
+
+            UIController.Instance.UnhighlightInvSlot(oldSelectedHotbarSlot);
+            UIController.Instance.HighlightInvSlot(selectedHotbarSlot);
+        }
+
         if (Input.GetKey(KeyCode.Mouse0)) {
-            if (!CanPerformClickAction()) {
+            if (!CanPerformClickAction(currentAction)) {
                 return;
             }
 
@@ -72,7 +94,7 @@ public class CursorController : MonoBehaviour
             if (invSlotObj == null) {
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.UseHotbarItem)) { //Input 0
-                    UseHotbarItem();
+                    UseHotbarItem(selectedInvSlot);
                 }
 
                 else if (heldItem != null && (currentAction == ClickAction.Any || currentAction == ClickAction.UseHeldItem)) { //Input 1
@@ -96,7 +118,7 @@ public class CursorController : MonoBehaviour
         }
 
         else if (Input.GetKey(KeyCode.Mouse1)) {
-            if (!CanPerformClickAction()) {
+            if (!CanPerformClickAction(currentAction)) {
                 return;
             }
 
@@ -105,7 +127,7 @@ public class CursorController : MonoBehaviour
             if (invSlotObj == null) {
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.DropHotbarItem)) { //Input 4
-                    DropHotbarItem();
+                    //DropHotbarItem();
                 }
 
                 else if (heldItem != null && (currentAction == ClickAction.Any || currentAction == ClickAction.DropHeldItem)) { //Input 5
@@ -128,8 +150,8 @@ public class CursorController : MonoBehaviour
                             PlaceSingleItem(invSlot);
                         }
                     }
-                    else if (invItem.id == heldItem.id) {
-                        if (heldItem.currentStack <= ItemManager.GetItem(heldItem.id).maxStackSize-1 && (currentAction == ClickAction.Any || currentAction == ClickAction.TakeSingleItem)) { //Input 8
+                    else if (invItem.name == heldItem.name) {
+                        if (heldItem.currentStack <= ItemManager.GetItem(heldItem.name).maxStackSize-1 && (currentAction == ClickAction.Any || currentAction == ClickAction.TakeSingleItem)) { //Input 8
                             TakeSingleItem(invSlot);
                         }
                     }
@@ -143,14 +165,23 @@ public class CursorController : MonoBehaviour
         }
     }
 
-    void UseHotbarItem() {
-        WorldModifier.Instance.RemoveTile();
+    void UseHotbarItem(InventorySlotObject invSlot) {
+        if (selectedHotbarSlot == 0) {
+            WorldModifier.Instance.DigTile(5f);
+        } else {
+            ItemObject hotbarItem = invSlot.GetContainedItem();
+            if (hotbarItem == null) {
+                return;
+            }
+            hotbarItem.Use();
+            invSlot.UpdateItemIcon(hotbarItem);
+        }
         IncrementClicks();
         currentAction = ClickAction.UseHotbarItem;
     }
 
     void UseHeldItem() {
-        Debug.Log(heldItem.id);
+        //Debug.Log(heldItem.name);
 
         heldItem.Use();
         if (heldItem.currentStack <= 0) {
@@ -230,14 +261,14 @@ public class CursorController : MonoBehaviour
         if (heldItem == null) {
             HideHeldItemVisuals();
         } else {
-            Sprite newIcon = ItemManager.GetItem(heldItem.id).icon;
+            Sprite newIcon = ItemManager.GetItem(heldItem.name).icon;
             playerHeldItem.sprite = newIcon;
             heldItemIcon.sprite = newIcon;
             heldItemCount.text = heldItem.currentStack > 1 ? heldItem.currentStack + "" : "";
 
-            heldLightVal = ItemManager.GetItem(heldItem.id).lightStrength;
+            heldLightVal = ItemManager.GetItem(heldItem.name).lightStrength;
             if (heldLightVal > 0) {
-                Color lightColor = ItemManager.GetItem(heldItem.id).lightColor;
+                Color lightColor = ItemManager.GetItem(heldItem.name).lightColor;
                 playerHeldItemLight.startLightStrength = heldLightVal;
                 playerHeldItemLight.lightColor = lightColor;
                 playerHeldItemLight.enabled = true;
@@ -257,24 +288,31 @@ public class CursorController : MonoBehaviour
         }
     }
 
-    bool CanPerformClickAction() {
-        if (elapsedTime >= lastTime + clickActionSpeed) {
-            lastTime = elapsedTime;
-            return true;
+    bool CanPerformClickAction(ClickAction action) {
+        if (action == ClickAction.UseHeldItem || action == ClickAction.UseHotbarItem) {
+            if (elapsedTime >= lastTime + itemActionSpeed) {
+                lastTime = elapsedTime;
+                return true;
+            }
+        } else {
+            if (elapsedTime >= lastTime + inventoryActionSpeed) {
+                lastTime = elapsedTime;
+                return true;
+            }
         }
         return false;
     }
 
     void ResetClickSpeed() {
         consecutiveClicks = 0;
-        clickActionSpeed = clickActionMinSpeed;
+        inventoryActionSpeed = inventoryActionMinSpeed;
         lastTime = 0;
     }
 
     void IncrementClicks() {
         consecutiveClicks++;
-        if (consecutiveClicks >= accelerationClickThreshold && clickActionSpeed > clickActionMaxSpeed) {
-            clickActionSpeed *= clickActionAcceleration;
+        if (consecutiveClicks >= accelerationClickThreshold && inventoryActionSpeed > inventoryActionMaxSpeed) {
+            inventoryActionSpeed *= inventoryActionAcceleration;
         }
     }
 }

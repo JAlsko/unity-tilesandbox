@@ -17,6 +17,7 @@ using System;
 [RequireComponent(typeof(TerrainGenerator))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
 [RequireComponent(typeof(LiquidController))]
+[RequireComponent(typeof(UIController))]
 public class WorldController : Singleton<WorldController> {
 
 	static string WORLD_SAVE_NAME = "worldSave.dat";
@@ -34,6 +35,8 @@ public class WorldController : Singleton<WorldController> {
 	ItemManager iMgr;
 	ChunkObjectsHolder cObjs;
 	LiquidController lqCon;
+	WorldModifier wMod;
+	UIController uic;
 
 	public Transform player;
 
@@ -79,6 +82,8 @@ public class WorldController : Singleton<WorldController> {
 		iMgr = GetComponent<ItemManager>();
 		cObjs = GetComponent<ChunkObjectsHolder>();
 		lqCon = GetComponent<LiquidController>();
+		wMod = GetComponent<WorldModifier>();
+		uic = GetComponent<UIController>();
 
 		//Checks to make sure world generation size matches with chunk size
 		if (worldWidth % chunkSize != 0 || worldHeight % chunkSize != 0) {
@@ -129,10 +134,12 @@ public class WorldController : Singleton<WorldController> {
 			PlacePlayer();
 			PackTextures();
 			GenerateColliders();
+			InitializeTileHealth();
 			RenderWorld();
 			GenerateLightMap();
 			InitializeLiquids();
 			InitializeItems();
+			InitializeUI();
 			worldInitialized = true;
 		}
 
@@ -185,6 +192,14 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		/// <summary>
+		/// Initializes tile health for existing tiles
+		/// </summary>
+		/// <returns></returns>
+		void InitializeTileHealth() {
+			wMod.InitializeTileHealth();
+		}
+
+		/// <summary>
         /// Handles initial render of all chunk tiles.
         /// </summary>
         /// <returns></returns>
@@ -215,6 +230,16 @@ public class WorldController : Singleton<WorldController> {
         /// <returns></returns>
 		void InitializeItems() {
 			iMgr.InitializeItemManager();
+			iMgr.InitializeAllItems();
+		}
+
+		/// <summary>
+        /// Initializes ItemManager's item collection.
+        /// </summary>
+        /// <returns></returns>
+		void InitializeUI() {
+			//uic.InitializeInventoryItemUI();
+			uic.InitializeRecipeUI();
 		}
 	//
 
@@ -262,6 +287,14 @@ public class WorldController : Singleton<WorldController> {
 		public int[,] GetWorld(int worldLayer = 0) {
 			NewWorld();
 			return worldLayer == 0 ? world_fg : world_bg;
+		}
+
+		public int GetTile(int x, int y, int worldLayer = 0, int chunk = 0) {
+			if (x > world_fg.GetUpperBound(0) || y > world_fg.GetUpperBound(1) || x < 0 || y < 0) {
+				//Debug.Log(x + " " + y + " (" + chunk + ")");
+				return 0;
+			}
+			return worldLayer == 0 ? world_fg[x, y] : world_bg[x, y];
 		}
 	//
 
@@ -452,7 +485,8 @@ public class WorldController : Singleton<WorldController> {
 			int chunkToModify = GetChunk(x, y);
 
 			//Re-render tile's chunk
-			wRend.RenderChunkTiles(chunkToModify);
+			//wRend.RenderChunkTiles(chunkToModify);
+			wRend.RenderTile(x, y, newTile);
 
 			//Re-render tile's lightmap
 			ltCon.HandleNewTile(x, y, newTile, world_bg[x, y]);

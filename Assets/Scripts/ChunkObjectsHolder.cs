@@ -11,7 +11,9 @@ public class ChunkObjectsHolder : MonoBehaviour
 	public GameObject defaultChunk;
 
     GameObject[] chunkObjs;
+	GameObject[] chunkFGs;
 	GameObject[] chunkBGs;
+	GameObject[] chunkCols;
 	MeshRenderer[] chunkLightmaps;
 	MeshRenderer[] chunkBGLightmaps;
     Tilemap[] chunkLiquidTilemaps;
@@ -21,7 +23,9 @@ public class ChunkObjectsHolder : MonoBehaviour
         int worldChunkCount = WorldController.GetChunkCount();
 
         chunkObjs = new GameObject[worldChunkCount];
+        chunkFGs = new GameObject[worldChunkCount];
         chunkBGs = new GameObject[worldChunkCount];
+        chunkCols = new GameObject[worldChunkCount];
         chunkLightmaps = new MeshRenderer[worldChunkCount];
         chunkBGLightmaps = new MeshRenderer[worldChunkCount];
         chunkLiquidTilemaps = new Tilemap[worldChunkCount];
@@ -37,10 +41,15 @@ public class ChunkObjectsHolder : MonoBehaviour
             newChunkObj.transform.localScale = Vector3.one;
             chunkObjs[chunk] = newChunkObj;
             
-            GameObject chunkBG = newChunkObj.transform.Find("ChunkBG").gameObject;
-            BoxCollider2D bgCol = chunkBG.GetComponent<BoxCollider2D>();
+            //GameObject chunkBG = newChunkObj.transform.Find("ChunkBG").gameObject;
+            GameObject chunkFG = newChunkObj.transform.Find("FGTilemap").gameObject;
+            GameObject chunkBG = newChunkObj.transform.Find("BGTilemap").gameObject;
+            GameObject chunkCol = newChunkObj.transform.Find("ChunkBG").gameObject;
+            BoxCollider2D bgCol = chunkCol.GetComponent<BoxCollider2D>();
             bgCol.offset = new Vector2(chunkSize/2, chunkSize/2);
             bgCol.size = new Vector2(chunkSize, chunkSize);
+            chunkFGs[chunk] = chunkFG;
+            chunkFG.GetComponentInChildren<Tilemap>().SetTileFlags(Vector3Int.zero, TileFlags.None);
             chunkBGs[chunk] = chunkBG;
 
             Transform chunkLightmapObj = newChunkObj.transform.Find("LightMap");
@@ -60,6 +69,10 @@ public class ChunkObjectsHolder : MonoBehaviour
 
     public GameObject GetChunkObject(int chunk) {
         return chunkObjs[chunk];
+    }
+
+    public GameObject GetChunkFG(int chunk) {
+        return chunkFGs[chunk];
     }
 
     public GameObject GetChunkBG(int chunk) {

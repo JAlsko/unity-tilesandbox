@@ -8,7 +8,7 @@ using System;
 public class BlockItem : Item {
     public int blockID;
 
-    new public int Use() {
-        return WorldModifier.Instance.AddTile(blockID);
+    override public int Use() {
+        return WorldModifier.Instance.PlaceTile(blockID);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using UnityEngine.Tilemaps;
 
 [Serializable]
 public class UVTile {
@@ -61,7 +62,7 @@ public class TileRenderer : MonoBehaviour {
 		/// </summary>
 		/// <param name="chunk"></param>
 		/// <returns></returns>
-		public void RenderChunkTiles(int chunk) {
+		/*public void RenderChunkTiles(int chunk) {
 			int[,] chunkTiles = wCon.GetChunkTiles(chunk, 0);
 			int[,] chunkBGTiles = wCon.GetChunkTiles(chunk, 1);
 
@@ -212,6 +213,66 @@ public class TileRenderer : MonoBehaviour {
 			bgMF.mesh = bgMesh;
 
 			ShowChunk(chunk);
+		}*/
+		public void RenderChunkTiles(int chunk) {
+			int[,] chunkTiles = wCon.GetChunkTiles(chunk, 0);
+			int[,] chunkBGTiles = wCon.GetChunkTiles(chunk, 1);
+
+			int chunkSize = WorldController.chunkSize;
+
+			int vertexCount = chunkSize * chunkSize * 4;
+
+			Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+
+			GameObject chunkObj = cObjs.GetChunkFG(chunk);
+			GameObject chunkBGObj = cObjs.GetChunkBG(chunk);
+
+			Tilemap fgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
+			Tilemap bgTilemap = chunkBGObj.GetComponentInChildren<Tilemap>();
+
+			fgTilemap.SetColor(Vector3Int.zero, Color.clear);
+
+			for (int x = 0; x < chunkSize; x++) {
+				for (int y = 0; y < chunkSize; y++) {
+					RuleTile fgTile = tMgr.allTiles[chunkTiles[x, y]].ruleTileBase;
+					RuleTile bgTile = tMgr.allTiles[chunkBGTiles[x, y]].ruleTileBase;
+
+					Vector3Int tilePos = new Vector3Int(x, y, 0);
+
+					fgTilemap.SetTile(tilePos, fgTile);
+					bgTilemap.SetTile(tilePos, bgTile);
+					if (x == 0 && y == 0) {
+						fgTilemap.SetColor(tilePos, new Color(1, 1, 1, chunk/255f));
+						bgTilemap.SetColor(tilePos, new Color(1, 1, 1, chunk/255f));
+					}
+				}
+			}
+		}
+
+		public void RenderTile(int x, int y, int newTile, int worldLayer = 0) {
+			int chunk = WorldController.GetChunk(x, y);
+			Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+			int chunkX = x - chunkPos.x;
+			int chunkY = y - chunkPos.y;
+
+			if (worldLayer == 0) {
+				GameObject chunkObj = cObjs.GetChunkFG(chunk);
+				Tilemap fgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
+
+				RuleTile fgTile = tMgr.allTiles[newTile].ruleTileBase;
+
+				fgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), fgTile);
+				fgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
+				Debug.Log(fgTilemap.GetColor(Vector3Int.zero).a*255);
+			} else {
+				GameObject chunkObj = cObjs.GetChunkBG(chunk);
+				Tilemap bgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
+
+				RuleTile bgTile = tMgr.allTiles[newTile].ruleTileBase;
+
+				bgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), bgTile);
+				bgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
+			}
 		}
 
 		void HideChunk(int chunk) {

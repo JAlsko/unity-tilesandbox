@@ -11,6 +11,8 @@ public class InventorySlotObject : MonoBehaviour
 
     public Sprite defaultSprite;
 
+    public Image highlightPanel;
+
     private PlayerInventory linkedInv;
     private int linkedSlot;
 
@@ -19,6 +21,7 @@ public class InventorySlotObject : MonoBehaviour
         if (defaultSprite == null) {
             defaultSprite = itemIcon.sprite;
         }
+        //UnhighlightSlot();
     }
 
     void DebugSlotItem() {
@@ -77,8 +80,15 @@ public class InventorySlotObject : MonoBehaviour
     public void UpdateItemIcon(ItemObject newItem) {
         if (newItem == null) {
             HideItemIcon();
-        } else {
-            itemIcon.sprite = ItemManager.GetItem(newItem.id).icon;
+        } 
+        
+        else if (newItem.currentStack <= 0) {
+            RemoveItem();
+            HideItemIcon();
+        }
+
+        else {
+            itemIcon.sprite = ItemManager.GetItem(newItem.name).icon;
             itemCount.text = newItem.currentStack > 1 ? newItem.currentStack + "" : "";
             itemIcon.enabled = true;
         }
@@ -87,5 +97,13 @@ public class InventorySlotObject : MonoBehaviour
     public void HideItemIcon() {
         itemIcon.sprite = defaultSprite;
         itemCount.text = "";
+    }
+
+    public void HighlightSlot() {
+        highlightPanel.enabled = true;
+    }
+
+    public void UnhighlightSlot() {
+        highlightPanel.enabled = false;
     }
 }

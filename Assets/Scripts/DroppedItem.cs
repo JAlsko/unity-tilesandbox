@@ -54,7 +54,7 @@ public class DroppedItem : MonoBehaviour
     }
 
     public string GetDescriptionText() {
-        return ItemManager.GetItem(thisItem.id).name + " (" + thisItem.currentStack + ")"; 
+        return ItemManager.GetItem(thisItem.name).name + " (" + thisItem.currentStack + ")"; 
     }
 
     public ItemObject GetDroppedItem() {
@@ -67,7 +67,7 @@ public class DroppedItem : MonoBehaviour
 
     public void InitializeItem(ItemObject itemObj) {
         thisItem = itemObj;
-        Item itemInfo = ItemManager.GetItem(thisItem.id);
+        Item itemInfo = ItemManager.GetItem(thisItem.name);
         itemIcon.sprite = itemInfo.icon;
         float colSize = itemInfo.colliderSize;
         triggerCol.size = Vector2.one * colSize;
@@ -75,9 +75,9 @@ public class DroppedItem : MonoBehaviour
         EnableCollision();
         physCol.transform.gameObject.SetActive(true);
 
-        float lightVal = ItemManager.GetItem(itemInfo.id).lightStrength;
+        float lightVal = ItemManager.GetItem(itemInfo.name).lightStrength;
         if (lightVal > 0) {
-            Color lightColor = ItemManager.GetItem(itemInfo.id).lightColor;
+            Color lightColor = ItemManager.GetItem(itemInfo.name).lightColor;
             itemLight.startLightStrength = lightVal;
             itemLight.lightColor = lightColor;
             itemLight.enabled = true;

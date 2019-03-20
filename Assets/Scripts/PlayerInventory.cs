@@ -5,7 +5,9 @@ using System.Linq;
 
 public class PlayerInventory : MonoBehaviour
 {
-    public int inventorySize = 32;
+    public int backpackSize = 32;
+    public int hotbarSize = 8;
+    private int inventorySize;
     private int firstOpenSlot = -1;
     private ItemObject[] inventory;
     private InventorySlotObject[] invSlots;
@@ -14,6 +16,7 @@ public class PlayerInventory : MonoBehaviour
     private List<int> openSlots = new List<int>();
 
     void Start() {
+        inventorySize = backpackSize + hotbarSize;
         inventory = new ItemObject[inventorySize];
         Cursor.visible = false;
 
@@ -48,7 +51,8 @@ public class PlayerInventory : MonoBehaviour
         return openSlots[0];
     }
 
-    int DistributeNewAddedItem(int id, int currentStack, int index) {
+    int DistributeNewAddedItem(string name, int currentStack, int index) {
+        //Debug.Log("Distributing item with stack " + currentStack);
         if (index >= inventorySize) {
             return currentStack;
         }
@@ -65,11 +69,12 @@ public class PlayerInventory : MonoBehaviour
             if (inventory[i] == null) {
                 continue;
             }
-            if (inventory[i].id == id) {
-                int addableAmount = Mathf.Min(ItemManager.GetItem(id).maxStackSize - inventory[i].currentStack, currentStack);
+            if (inventory[i].name == name) {
+                int addableAmount = Mathf.Min(ItemManager.GetItem(name).maxStackSize - inventory[i].currentStack, currentStack);
                 inventory[i].currentStack += addableAmount;
+                //Debug.Log("Adding " + addableAmount + " to slot " + i);
                 invSlots[i].UpdateItemIcon(inventory[i]);
-                return DistributeNewAddedItem(id, currentStack - addableAmount, i+1);
+                return DistributeNewAddedItem(name, currentStack - addableAmount, i+1);
             }
         }
 
@@ -81,8 +86,8 @@ public class PlayerInventory : MonoBehaviour
             Debug.Log("Trying to add null item!");
             return null;
         }
-        ItemObject leftOverItem = new ItemObject(newItem.id, newItem.currentStack);
-        int leftOverAmount = DistributeNewAddedItem(newItem.id, newItem.currentStack, 0);
+        ItemObject leftOverItem = new ItemObject(newItem.name, newItem.currentStack);
+        int leftOverAmount = DistributeNewAddedItem(newItem.name, newItem.currentStack, 0);
         if (leftOverAmount <= 0) {
             return null;
         }
@@ -155,8 +160,8 @@ public class PlayerInventory : MonoBehaviour
             inventory[invSlot] = newItem;
             return null;
         }
-        else if (newItem.id == currentItem.id) {
-            int addableAmount = ItemManager.GetItem(newItem.id).maxStackSize - currentItem.currentStack;
+        else if (newItem.name == currentItem.name) {
+            int addableAmount = ItemManager.GetItem(newItem.name).maxStackSize - currentItem.currentStack;
             if (newItem.currentStack < addableAmount) {
                 addableAmount = newItem.currentStack;
             }
@@ -197,7 +202,7 @@ public class PlayerInventory : MonoBehaviour
         }
         
         int takeableAmount = inventory[invSlot].currentStack >= stackSize ? stackSize : inventory[invSlot].currentStack;
-        ItemObject itemToGive = new ItemObject(inventory[invSlot].id, takeableAmount + currentStackSize);
+        ItemObject itemToGive = new ItemObject(inventory[invSlot].name, takeableAmount + currentStackSize);
         inventory[invSlot].currentStack -= takeableAmount;
         if (inventory[invSlot].currentStack <= 0) {
             RemoveItem(invSlot);
@@ -229,10 +234,10 @@ public class PlayerInventory : MonoBehaviour
             return craftables;
         }*/
 
-        int GetItemCount(int itemID) {
+        int GetItemCount(string itemID) {
             int totalItems = 0;
             foreach (ItemObject item in inventory) {
-                if (item.id == itemID) {
+                if (item.name == itemID) {
                     totalItems += item.currentStack;
                 }
             }
