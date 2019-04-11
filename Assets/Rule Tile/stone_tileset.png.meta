@@ -47,7 +47,7 @@ TextureImporter:
     21300084: stone_tileset_42
     21300086: stone_tileset_43
   externalObjects: {}
-  serializedVersion: 7
+  serializedVersion: 9
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -143,17 +143,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 96
-        width: 8
-        height: 8
+        y: 120
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 1405ff7b1670aa54489dccea61dc9569
+      spriteID: 9006b2271cbf5244894673c55414e228
       vertices: []
       indices: 
       edges: []
@@ -162,18 +162,18 @@ TextureImporter:
       name: stone_tileset_1
       rect:
         serializedVersion: 2
-        x: 8
-        y: 96
-        width: 8
-        height: 8
+        x: 10
+        y: 120
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a9ecba8c997b7f5448534c190f255cad
+      spriteID: 285486468b9ea5e4c84d52f8fd143c61
       vertices: []
       indices: 
       edges: []
@@ -182,18 +182,18 @@ TextureImporter:
       name: stone_tileset_2
       rect:
         serializedVersion: 2
-        x: 16
-        y: 96
-        width: 8
-        height: 8
+        x: 20
+        y: 120
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fbbd15cdc2e035a4599e811d8af33b63
+      spriteID: f807d13b2ad32e641ad38f93474d6184
       vertices: []
       indices: 
       edges: []
@@ -202,18 +202,18 @@ TextureImporter:
       name: stone_tileset_3
       rect:
         serializedVersion: 2
-        x: 24
-        y: 96
-        width: 8
-        height: 8
+        x: 30
+        y: 120
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 39428d1737d38804d8c833372368e671
+      spriteID: e47aefc21f9164d4592f4de15f1bd809
       vertices: []
       indices: 
       edges: []
@@ -223,17 +223,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 88
-        width: 8
-        height: 8
+        y: 110
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 783adcd9810df8a4fa9e93ac9070d597
+      spriteID: 287e17f6f9c859c42a388905e9720dd6
       vertices: []
       indices: 
       edges: []
@@ -242,18 +242,18 @@ TextureImporter:
       name: stone_tileset_5
       rect:
         serializedVersion: 2
-        x: 8
-        y: 88
-        width: 8
-        height: 8
+        x: 10
+        y: 110
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e2a13cafb366bc247a0a1bd5436dd811
+      spriteID: 921a71028225be94592f78477e1013be
       vertices: []
       indices: 
       edges: []
@@ -262,18 +262,18 @@ TextureImporter:
       name: stone_tileset_6
       rect:
         serializedVersion: 2
-        x: 16
-        y: 88
-        width: 8
-        height: 8
+        x: 20
+        y: 110
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 55294ef0b951bbe498760ea67661b851
+      spriteID: 4382acd4b41db034e8d5d2abb2993ac9
       vertices: []
       indices: 
       edges: []
@@ -282,18 +282,18 @@ TextureImporter:
       name: stone_tileset_7
       rect:
         serializedVersion: 2
-        x: 24
-        y: 88
-        width: 8
-        height: 8
+        x: 30
+        y: 110
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d8d6b4a0783ec8e4fb87aa555b48fbe0
+      spriteID: 38f8018a08cc9604ebb33ac745d31c4c
       vertices: []
       indices: 
       edges: []
@@ -303,17 +303,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 80
-        width: 8
-        height: 8
+        y: 100
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 276349b36d51b0045b349aaac9b5e96a
+      spriteID: 306d8fbc8f685234aab181512b8137aa
       vertices: []
       indices: 
       edges: []
@@ -322,18 +322,18 @@ TextureImporter:
       name: stone_tileset_9
       rect:
         serializedVersion: 2
-        x: 8
-        y: 80
-        width: 8
-        height: 8
+        x: 10
+        y: 100
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5aa979c4c3c168447b9120f94153a3cc
+      spriteID: 6b0e8662585abc344b6a2ac04dfe43a2
       vertices: []
       indices: 
       edges: []
@@ -342,18 +342,18 @@ TextureImporter:
       name: stone_tileset_10
       rect:
         serializedVersion: 2
-        x: 16
-        y: 80
-        width: 8
-        height: 8
+        x: 20
+        y: 100
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 76fb09fd79315e24098ecc0ba53530ec
+      spriteID: 5519511803f03894ebb2047f26a61138
       vertices: []
       indices: 
       edges: []
@@ -362,18 +362,18 @@ TextureImporter:
       name: stone_tileset_11
       rect:
         serializedVersion: 2
-        x: 24
-        y: 80
-        width: 8
-        height: 8
+        x: 30
+        y: 100
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fff8b33f37e05964abf016cf744e62e6
+      spriteID: 321920a6c669e5a45a502e5b3b9e3d94
       vertices: []
       indices: 
       edges: []
@@ -383,17 +383,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 72
-        width: 8
-        height: 8
+        y: 90
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fa655d9d6cec72d4da396b92b22b196d
+      spriteID: dd51b81506b3eb24081843a2b64bebd1
       vertices: []
       indices: 
       edges: []
@@ -402,18 +402,18 @@ TextureImporter:
       name: stone_tileset_13
       rect:
         serializedVersion: 2
-        x: 8
-        y: 72
-        width: 8
-        height: 8
+        x: 10
+        y: 90
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c7fcdbe8c6c4253448fa691c40355363
+      spriteID: 44a90d0b69e2ccd479373d6ddb6c998a
       vertices: []
       indices: 
       edges: []
@@ -422,18 +422,18 @@ TextureImporter:
       name: stone_tileset_14
       rect:
         serializedVersion: 2
-        x: 16
-        y: 72
-        width: 8
-        height: 8
+        x: 20
+        y: 90
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 9be60f8b4239d3940b3490e7296a1af8
+      spriteID: 3c652ebb6e74c684d8cb3d0fe443bc27
       vertices: []
       indices: 
       edges: []
@@ -442,18 +442,18 @@ TextureImporter:
       name: stone_tileset_15
       rect:
         serializedVersion: 2
-        x: 24
-        y: 72
-        width: 8
-        height: 8
+        x: 30
+        y: 90
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a7a1c40d53e235446a32d3bb69aa2921
+      spriteID: ebcc6fbdef1290f44b48287adf49f789
       vertices: []
       indices: 
       edges: []
@@ -463,17 +463,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 64
-        width: 8
-        height: 8
+        y: 80
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 97e1bf0f2f60fee48818b61867f07f08
+      spriteID: dd2e62a793e3d654bae3b92e9c491d66
       vertices: []
       indices: 
       edges: []
@@ -482,18 +482,18 @@ TextureImporter:
       name: stone_tileset_17
       rect:
         serializedVersion: 2
-        x: 8
-        y: 64
-        width: 8
-        height: 8
+        x: 10
+        y: 80
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b3c7f515b31c41d49b51ce97629b84bd
+      spriteID: ac20bc9af9a55a04aa767a83dbe077e6
       vertices: []
       indices: 
       edges: []
@@ -502,18 +502,18 @@ TextureImporter:
       name: stone_tileset_18
       rect:
         serializedVersion: 2
-        x: 16
-        y: 64
-        width: 8
-        height: 8
+        x: 20
+        y: 80
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 88509543a5517634696e239ad36660f7
+      spriteID: 3c33dbd8b3eda4546acf64cff0c21ac2
       vertices: []
       indices: 
       edges: []
@@ -522,18 +522,18 @@ TextureImporter:
       name: stone_tileset_19
       rect:
         serializedVersion: 2
-        x: 24
-        y: 64
-        width: 8
-        height: 8
+        x: 30
+        y: 80
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b871eba80c930b74a9cbc3e41a7e3fcd
+      spriteID: 3d1c13d362f1959489b096c41cde39c3
       vertices: []
       indices: 
       edges: []
@@ -543,17 +543,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 56
-        width: 8
-        height: 8
+        y: 70
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 56ff867241c22fd45ae6f8fbc6dfc69b
+      spriteID: f6e73bf515529514b9d0ba7a74578257
       vertices: []
       indices: 
       edges: []
@@ -562,18 +562,18 @@ TextureImporter:
       name: stone_tileset_21
       rect:
         serializedVersion: 2
-        x: 8
-        y: 56
-        width: 8
-        height: 8
+        x: 10
+        y: 70
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ea6cc76de8d10b94d9ff1bc74b2cd04d
+      spriteID: 0af83c6bb923c374eae346adfc02498a
       vertices: []
       indices: 
       edges: []
@@ -582,18 +582,18 @@ TextureImporter:
       name: stone_tileset_22
       rect:
         serializedVersion: 2
-        x: 16
-        y: 56
-        width: 8
-        height: 8
+        x: 20
+        y: 70
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 827d3b08cf251e34c97603b3a1bbc131
+      spriteID: 377da8f596506444e9821fcf77bf5f18
       vertices: []
       indices: 
       edges: []
@@ -602,18 +602,18 @@ TextureImporter:
       name: stone_tileset_23
       rect:
         serializedVersion: 2
-        x: 24
-        y: 56
-        width: 8
-        height: 8
+        x: 30
+        y: 70
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b87a01b6dcb359b49b5c363b296e75de
+      spriteID: 0dd72dfd93fd24548a5d65c2589306b2
       vertices: []
       indices: 
       edges: []
@@ -623,17 +623,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 48
-        width: 8
-        height: 8
+        y: 60
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 78511acf4aacc5145b02cd52333ec371
+      spriteID: a6b478925ca461345a70aebc8c68c1f7
       vertices: []
       indices: 
       edges: []
@@ -642,18 +642,18 @@ TextureImporter:
       name: stone_tileset_25
       rect:
         serializedVersion: 2
-        x: 8
-        y: 48
-        width: 8
-        height: 8
+        x: 10
+        y: 60
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2f1215c4cf5fa8947991e1688b8488b2
+      spriteID: 3b8cf608542419248b787bdeef217de0
       vertices: []
       indices: 
       edges: []
@@ -662,18 +662,18 @@ TextureImporter:
       name: stone_tileset_26
       rect:
         serializedVersion: 2
-        x: 16
-        y: 48
-        width: 8
-        height: 8
+        x: 20
+        y: 60
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a657c5518f6b1a9479f56a299c5f4c12
+      spriteID: fe2ffc4d7d564b34aa77c49522e8d84e
       vertices: []
       indices: 
       edges: []
@@ -682,18 +682,18 @@ TextureImporter:
       name: stone_tileset_27
       rect:
         serializedVersion: 2
-        x: 24
-        y: 48
-        width: 8
-        height: 8
+        x: 30
+        y: 60
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: bb114f99114285b4a8a35e9e0dc1ba21
+      spriteID: 32f3fdf813bbc17428980dd80b55216a
       vertices: []
       indices: 
       edges: []
@@ -703,17 +703,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 40
-        width: 8
-        height: 8
+        y: 50
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: eac5e77baad47804eb2b2b365448e697
+      spriteID: 1dd8710121d501e4eb05fb4d7d62c9b5
       vertices: []
       indices: 
       edges: []
@@ -722,18 +722,18 @@ TextureImporter:
       name: stone_tileset_29
       rect:
         serializedVersion: 2
-        x: 8
-        y: 40
-        width: 8
-        height: 8
+        x: 10
+        y: 50
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 84a438fc13d860d438ca0a436824b740
+      spriteID: 040606fa35dcc33459ab82646d22f87b
       vertices: []
       indices: 
       edges: []
@@ -742,18 +742,18 @@ TextureImporter:
       name: stone_tileset_30
       rect:
         serializedVersion: 2
-        x: 16
-        y: 40
-        width: 8
-        height: 8
+        x: 20
+        y: 50
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b64afb81ff9eb8044bc3d982a366d40c
+      spriteID: 19e5cce14b7ade94ca11cdf5e8c1cfe6
       vertices: []
       indices: 
       edges: []
@@ -762,18 +762,18 @@ TextureImporter:
       name: stone_tileset_31
       rect:
         serializedVersion: 2
-        x: 24
-        y: 40
-        width: 8
-        height: 8
+        x: 30
+        y: 50
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 47e09b8b913cfe148b1348f9d81b4725
+      spriteID: 33321d47d2ad38e43ba2af2e63eb82da
       vertices: []
       indices: 
       edges: []
@@ -783,17 +783,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 32
-        width: 8
-        height: 8
+        y: 40
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8d08b6639a070a64390029cd6dc53eec
+      spriteID: f76f0859d47e0bc4ba848abecd83deb3
       vertices: []
       indices: 
       edges: []
@@ -802,18 +802,18 @@ TextureImporter:
       name: stone_tileset_33
       rect:
         serializedVersion: 2
-        x: 8
-        y: 32
-        width: 8
-        height: 8
+        x: 10
+        y: 40
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c5709a74e7f94c3488d6edbfacd85019
+      spriteID: 0c8bbdab01af60e4cba56b1dbd93c3ad
       vertices: []
       indices: 
       edges: []
@@ -822,18 +822,18 @@ TextureImporter:
       name: stone_tileset_34
       rect:
         serializedVersion: 2
-        x: 16
-        y: 32
-        width: 8
-        height: 8
+        x: 20
+        y: 40
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 805bdaf05a87b6a4295dc04488a6e90a
+      spriteID: da6cb444d5cf72c4ea3f44f9cc7e3cd9
       vertices: []
       indices: 
       edges: []
@@ -842,18 +842,18 @@ TextureImporter:
       name: stone_tileset_35
       rect:
         serializedVersion: 2
-        x: 24
-        y: 32
-        width: 8
-        height: 8
+        x: 30
+        y: 40
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f38ab862eb3c5064db4b6f5efb200e6f
+      spriteID: 9d8b64edf0b14ac4a8358d4d1d5b5a9d
       vertices: []
       indices: 
       edges: []
@@ -863,17 +863,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 24
-        width: 8
-        height: 8
+        y: 30
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8ea417b144c3712409203463439bbfdf
+      spriteID: afc0137c0d5718e4da96177d5c9dbf40
       vertices: []
       indices: 
       edges: []
@@ -882,18 +882,18 @@ TextureImporter:
       name: stone_tileset_37
       rect:
         serializedVersion: 2
-        x: 8
-        y: 24
-        width: 8
-        height: 8
+        x: 10
+        y: 30
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: dd6982f6c4a4a5340b0291a9e9844cf3
+      spriteID: 180f44d69b2e90145a73e62019d57439
       vertices: []
       indices: 
       edges: []
@@ -902,18 +902,18 @@ TextureImporter:
       name: stone_tileset_38
       rect:
         serializedVersion: 2
-        x: 16
-        y: 24
-        width: 8
-        height: 8
+        x: 20
+        y: 30
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8fab17ce057768640b39e40ca4362011
+      spriteID: 88a9ed38cf3d36040bc4a848c2d17cc0
       vertices: []
       indices: 
       edges: []
@@ -922,18 +922,18 @@ TextureImporter:
       name: stone_tileset_39
       rect:
         serializedVersion: 2
-        x: 24
-        y: 24
-        width: 8
-        height: 8
+        x: 30
+        y: 30
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d0f246b4a4299d842bc869445c7d50ff
+      spriteID: 1bcce6c5931a0bf4b9bf439f9421bda6
       vertices: []
       indices: 
       edges: []
@@ -943,17 +943,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 16
-        width: 8
-        height: 8
+        y: 20
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8288073bb6cfd944e8aa3b753bb777c8
+      spriteID: bb9ceff3dab09d0448991f929cb68fd1
       vertices: []
       indices: 
       edges: []
@@ -962,18 +962,18 @@ TextureImporter:
       name: stone_tileset_41
       rect:
         serializedVersion: 2
-        x: 8
-        y: 16
-        width: 8
-        height: 8
+        x: 10
+        y: 20
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fe85795692d586840b8b6279bc7a39f8
+      spriteID: c7ab2b0665941584c831bf99427b616c
       vertices: []
       indices: 
       edges: []
@@ -982,18 +982,18 @@ TextureImporter:
       name: stone_tileset_42
       rect:
         serializedVersion: 2
-        x: 16
-        y: 16
-        width: 8
-        height: 8
+        x: 20
+        y: 20
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d684e997da9837b42a01c64d14cd5be5
+      spriteID: a5ffd2d4067482b4497582e30f4c2f4a
       vertices: []
       indices: 
       edges: []
@@ -1002,18 +1002,18 @@ TextureImporter:
       name: stone_tileset_43
       rect:
         serializedVersion: 2
-        x: 24
-        y: 16
-        width: 8
-        height: 8
+        x: 30
+        y: 20
+        width: 10
+        height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 77ea8ef26b259554096dd55446ca907a
+      spriteID: 05e587e7e01e32440841892552447298
       vertices: []
       indices: 
       edges: []

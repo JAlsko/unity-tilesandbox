@@ -124,6 +124,10 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		void StartupWorld(int[,] newWorld = null, int[,] newWorldBG = null) {
+			//world_fg = new int[s_worldWidth, s_worldHeight];
+			//world_bg = new int[s_worldWidth, s_worldHeight];
+			
+			InitializeTileHealth();
 			if (newWorld == null) {
 				NewWorld();
 			} else {
@@ -132,14 +136,13 @@ public class WorldController : Singleton<WorldController> {
 			}
 			InitializeChunks();
 			PlacePlayer();
-			PackTextures();
-			GenerateColliders();
-			InitializeTileHealth();
-			RenderWorld();
-			GenerateLightMap();
+			InitializeTiles();
 			InitializeLiquids();
 			InitializeItems();
+			InitializeMultiTiles();
 			InitializeUI();
+			RenderWorld();
+			GenerateLightMap();
 			worldInitialized = true;
 		}
 
@@ -148,12 +151,16 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		public void NewWorld() {
-			if (world_fg == null) {
-				Debug.Log("Null world! Generating new one!");
+			//if (world_fg == null) {
+				Debug.Log("Generating new world!");
+				
+				world_fg = new int[s_worldWidth, s_worldHeight];
+				world_bg = new int[s_worldWidth, s_worldHeight];
+				
 				world_fg = tGen.GenerateNewWorld();
 				world_bg = TerrainGenerator.Get2DArrayCopy(world_fg);
-				world_fg = tGen.DigCaves(world_fg);
-			}
+				//world_fg = tGen.DigCaves(world_fg);
+			//}
 		}
 
 		/// <summary>
@@ -177,8 +184,9 @@ public class WorldController : Singleton<WorldController> {
         /// Packs TileManager's textures (before rendering tiles).
         /// </summary>
         /// <returns></returns>
-		void PackTextures() {
-			tMgr.PackRuleTileTextures();
+		void InitializeTiles() {
+			tMgr.InitializeSupportBlocks();
+			//tMgr.PackRuleTileTextures();
 		}
 
 		/// <summary>
@@ -234,6 +242,14 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		/// <summary>
+        /// Initializes MultiTileManagers's MultiTiles collection.
+        /// </summary>
+        /// <returns></returns>
+		void InitializeMultiTiles() {
+			MultiTileManager.Instance.InitializeAllMultiTiles();
+		}
+
+		/// <summary>
         /// Initializes ItemManager's item collection.
         /// </summary>
         /// <returns></returns>
@@ -285,7 +301,7 @@ public class WorldController : Singleton<WorldController> {
 		}
 
 		public int[,] GetWorld(int worldLayer = 0) {
-			NewWorld();
+			//NewWorld();
 			return worldLayer == 0 ? world_fg : world_bg;
 		}
 
@@ -372,7 +388,7 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="worldLayer"></param>
         /// <returns></returns>
 		public int[,] GetChunkTiles(int chunk, int worldLayer = 0) {
-			NewWorld();
+			//NewWorld();
 			Vector2Int chunkPos = GetChunkPosition(chunk);
 
 			chunkTiles = new int[chunkSize, chunkSize];
@@ -468,6 +484,10 @@ public class WorldController : Singleton<WorldController> {
 			showingChunks = Helpers.GetListFromArr(oldChunksToShow);
 		}
 
+		public List<int> GetChunksShowing() {
+			return showingChunks;
+		}
+
 	//
 
 	//Tile Manipulator Functions
@@ -479,8 +499,11 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="y"></param>
         /// <param name="newTile"></param>
         /// <returns></returns>
-		private void ModifyTile(int x, int y, int newTile) {
+		public void ModifyTile(int x, int y, int newTile, bool updateWorld = true) {
 			world_fg[x, y] = newTile;
+
+			if (!updateWorld)
+				return;
 
 			int chunkToModify = GetChunk(x, y);
 
@@ -496,7 +519,7 @@ public class WorldController : Singleton<WorldController> {
 				lqCon.EmptyLiquidBlock(x, y);
 			
 			//Update colliders of tiles surrounding modified tile (updates other chunks' colliders if necessary)
-			wCol.GenerateTileColliders(world_fg, x, y);
+			//wCol.GenerateTileColliders(world_fg, x, y);
 		}
 
 		/// <summary>
@@ -561,6 +584,7 @@ public class WorldController : Singleton<WorldController> {
         /// <returns></returns>
 		public bool isSky(int x, int y) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
+				//Debug.Log("Out of map tile " + x + ", " + y);
 				return false;
 			}
 			bool skyTile = world_fg[x, y] == 0 && world_bg[x, y] == 0;

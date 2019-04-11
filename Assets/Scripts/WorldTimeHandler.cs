@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 [Serializable]
 public class TimeSetting {
@@ -19,13 +20,14 @@ public class WorldTimeHandler : MonoBehaviour
     LightController lCon;
 
     public float dayLengthInMinutes;
-    float dayLengthInSeconds;
+    public float dayLengthInSeconds;
     float timeScale = 1f;
 
     public List<TimeSetting> timeSettings = new List<TimeSetting>();
 
-    float elapsedTime = 0f;
-    int nextTimeSetting = 0;
+    public float elapsedTime = 0f;
+    public int upcomingTimeSetting = 0;
+    public int nextTimeSetting = 1;
 
     void Start()
     {
@@ -37,26 +39,8 @@ public class WorldTimeHandler : MonoBehaviour
     }
 
     void SortTimeSettings() {
-        List<TimeSetting> tempList = new List<TimeSetting>();
-        for (int sortIteration = 0; sortIteration < timeSettings.Count; sortIteration++) {
-            
-            float minTimeOccurrence = 2;
-            int minIndex = 0;
-            int curIndex = 0;
-
-            foreach (TimeSetting ts in timeSettings) {
-                if (ts.timeOccurrence < minTimeOccurrence) {
-                    minTimeOccurrence = ts.timeOccurrence;
-                    minIndex = curIndex;
-                }
-                curIndex++;
-            }
-
-            tempList.Add(timeSettings[minIndex]);
-            timeSettings.RemoveAt(minIndex);
-        }
-
-        timeSettings = tempList;
+        List<TimeSetting> sortedTimeSettings = timeSettings.OrderBy(o=>o.timeOccurrence).ToList();
+        timeSettings = sortedTimeSettings;
     }
 
     void CheckTimeSettings() {
@@ -88,22 +72,23 @@ public class WorldTimeHandler : MonoBehaviour
 
         elapsedTime = (elapsedTime + (Time.deltaTime * timeScale)) % dayLengthInSeconds;
 
-        //Restart day
         if (nextTimeSetting == 0) {
-            if (elapsedTime < timeSettings[timeSettings.Count-1].timeOccurrence * dayLengthInSeconds) {
-                UseTimeSetting(nextTimeSetting);
-                nextTimeSetting = (nextTimeSetting + 1) % timeSettings.Count;
+            if (elapsedTime > timeSettings[upcomingTimeSetting].timeOccurrence * dayLengthInSeconds) {
+                UseTimeSetting(upcomingTimeSetting);
+                upcomingTimeSetting = (upcomingTimeSetting + 1) % timeSettings.Count;
+                nextTimeSetting = (upcomingTimeSetting + 1) % timeSettings.Count;
             }
         }
 
         //Continue to next time setting
-        if (elapsedTime > timeSettings[nextTimeSetting].timeOccurrence * dayLengthInSeconds) {
-            UseTimeSetting(nextTimeSetting);
-            nextTimeSetting = (nextTimeSetting + 1) % timeSettings.Count;
+        if (elapsedTime > timeSettings[upcomingTimeSetting].timeOccurrence * dayLengthInSeconds && elapsedTime < timeSettings[nextTimeSetting].timeOccurrence * dayLengthInSeconds) {
+            UseTimeSetting(upcomingTimeSetting);
+            upcomingTimeSetting = (upcomingTimeSetting + 1) % timeSettings.Count;
+            nextTimeSetting = (upcomingTimeSetting + 1) % timeSettings.Count;
         }
     }
 
     void UseTimeSetting(int timeSettingIndex) {
-        
+        lCon.UpdateSkylight(timeSettings[timeSettingIndex].ambientLightColor);
     }
 }

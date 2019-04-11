@@ -26,7 +26,7 @@ public class LightSource : MonoBehaviour
     public float LightStrength { get; set; }
     public bool Initialized { get; set; }
     public Vector3Int Position { get; set; }
-
+    public bool Ambient { get; set; }
 
     private void Awake()
     {
@@ -34,6 +34,8 @@ public class LightSource : MonoBehaviour
                     (int)transform.position.x,
                     (int)transform.position.y, 0);
         InitializeLight(lightColor, 1f);
+
+        Ambient = false;
     }
 
     /// <summary>
@@ -41,10 +43,11 @@ public class LightSource : MonoBehaviour
     /// </summary>
     /// <param name="color"></param>
     /// <param name="strength"></param>
-    public void InitializeLight(Color color, float strength)
+    public void InitializeLight(Color color, float strength, bool ambient = false)
     {
         lightColor = color;
         LightStrength = strength;
         Initialized = true;
+        Ambient = ambient;
     }
 }

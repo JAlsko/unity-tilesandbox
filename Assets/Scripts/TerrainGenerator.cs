@@ -6,14 +6,14 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class TerrainGenerator : MonoBehaviour
 {
+    private WorldModifier wMod;
+
     public Material terrainMat;
     private Texture2D terrainTex;
 
     public Vector2Int worldSize;
 
     public List<Color> tileColors = new List<Color>();
-
-    private int[,] world;
 
     public int seaLevel = 0;
     public int peakHeight = 1;
@@ -41,6 +41,7 @@ public class TerrainGenerator : MonoBehaviour
     public int stoneSimulationSteps = 1;
 
 	void Start () {
+        wMod = GetComponent<WorldModifier>();
         realPlainsHeight = (plainsHeight - (worldSize.y/2)) / (worldSize.y/2);
 	}
 
@@ -48,7 +49,7 @@ public class TerrainGenerator : MonoBehaviour
         
     }
 	
-    [ContextMenu("Draw new world")]
+    /*[ContextMenu("Draw new world")]
 	public void DrawNewWorld() {
         terrainTex = new Texture2D(worldSize.x, worldSize.y, TextureFormat.RGBAFloat, false);
         terrainTex.filterMode = FilterMode.Point;
@@ -57,23 +58,25 @@ public class TerrainGenerator : MonoBehaviour
         terrainTex.Apply();
         terrainTex.filterMode = FilterMode.Point;
         terrainMat.SetTexture("_MainTex", terrainTex);
-    }
+    }*/
 
     public int[,] GenerateNewWorld() {
+        int[,] newWorld;
+
         plainsPoints = 0;
         nonplainsPoints = 0;
 
         realPlainsHeight = (plainsHeight - (worldSize.y/2)) / (worldSize.y/2);
-        world = GetNewFractalWorld(worldSize.x, worldSize.y);
+        newWorld = GetNewFractalWorld(worldSize.x, worldSize.y);
         if (stoneStartAliveChance > 0)
-            DistributeStone();
+            DistributeStone(newWorld);
 
         //PlantGrass();
 
         /*if (caveStartAliveChance > 0)
             DigCaves(world);
         */
-        return world;
+        return newWorld;
     }
 
     Color[] generatePixelArray(int[,] tiles) {
@@ -105,7 +108,7 @@ public class TerrainGenerator : MonoBehaviour
 
 	public int[,] GetNewFractalWorld(int width, int height) {
 		int[,] newWorld = GenerateArray(width, height);
-		FractalTerrain(newWorld, Time.time);
+		newWorld = FractalTerrain(newWorld, Time.time);
 		return newWorld;
 	}
 
@@ -130,15 +133,20 @@ public class TerrainGenerator : MonoBehaviour
 					//if (UnityEngine.Random.Range(0, 540) < 1) {
 					//	map[x, y] = 3;
 					//} else {
-						map[x, y] = 0;
+                        wMod.InitializeNewTile(x, y, 0);
+                        map[x, y] = 0;
 					//}
 				} else if (y == heightVal) {
-					map[x, y] = 1;
+					//map[x, y] = 1;
+                    wMod.InitializeNewTile(x, y, 1);
+                    map[x, y] = 1;
 				} else {
-					if (UnityEngine.Random.Range(0, 360) < 1) {
-						map[x, y] = 2;
+					if (UnityEngine.Random.Range(0, 400) < 1) {
+						wMod.InitializeNewTile(x, y, 3);
+                        map[x, y] = 3;
 					} else {
-						map[x, y] = 1;
+						wMod.InitializeNewTile(x, y, 1);
+                        map[x, y] = 1;
 					}
 				}
 			}
@@ -329,7 +337,7 @@ public class TerrainGenerator : MonoBehaviour
         return newStone;
     }
 
-    public int[,] GenerateCaves() {
+    public int[,] GenerateCaves(int[,] world) {
         int[,] caveArr = GenerateNoiseArray(worldSize.x, worldSize.y, caveStartAliveChance);
         caveArr = CullNoiseWithDepth(world, caveArr, caveDepth);
         for (int i = 0; i < caveSimulationSteps; i++) {
@@ -338,7 +346,7 @@ public class TerrainGenerator : MonoBehaviour
         return caveArr;
     }
 
-    public int[,] GenerateStone() {
+    public int[,] GenerateStone(int[,] world) {
         int[,] stoneArr = GenerateNoiseArray(worldSize.x, worldSize.y, stoneStartAliveChance);
         stoneArr = CullNoiseWithDepth(world, stoneArr, stoneDepth);
         for (int i = 0; i < stoneSimulationSteps; i++) {
@@ -348,7 +356,7 @@ public class TerrainGenerator : MonoBehaviour
     }
 
     public int[,] DigCaves(int[,] oldWorld) {
-        int[,] caves = GenerateCaves();
+        int[,] caves = GenerateCaves(oldWorld);
         for (int x = 0; x < worldSize.x; x++) {
             for (int y = worldSize.y - 1; y >= 0; y--) {
                 if (oldWorld[x, y] == 0) {
@@ -361,7 +369,7 @@ public class TerrainGenerator : MonoBehaviour
         return oldWorld;
     }
 
-    public void PlantGrass() {
+    public void PlantGrass(int[,] world) {
         for (int x = 0; x < worldSize.x; x++) {
             for (int y = worldSize.y - 1; y >= 0; y--) {
                 if (world[x, y] == 0) {
@@ -373,8 +381,8 @@ public class TerrainGenerator : MonoBehaviour
         }
     }
 
-    public void DistributeStone() {
-        int[,] stone = GenerateStone();
+    public void DistributeStone(int[,] world) {
+        int[,] stone = GenerateStone(world);
         for (int x = 0; x < worldSize.x; x++) {
             for (int y = 0; y < worldSize.y; y++) {
                 if (world[x, y] == 0) {

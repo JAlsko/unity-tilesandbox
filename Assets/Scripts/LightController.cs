@@ -23,18 +23,23 @@ public class LightController : Singleton<LightController>
     private int worldWidth, worldHeight;
 
     //Primary light value array
-    private Color[,] lightValues;
+    private Color[,] activeLightValues;
+    private Color[,] ambientLightValues;
+    private int[,] skyTiles;
  
     //Arrays to hold light map textures and materials
-    private Texture2D[] chunkLightTexes;
-    private Texture2D[] chunkBGLightTexes;
-    private Material[] chunkLightMats;
-    private Material[] chunkBGLightMats;
+    private Texture2D[] chunkActiveLightTexes;
+    private Texture2D[] chunkAmbientLightTexes;
+    private Texture2D[] chunkBGActiveLightTexes;
+    private Material[] chunkActiveLightMats;
+    private Material[] chunkAmbientLightMats;
+    private Material[] chunkBGActiveLightMats;
 
     private Dictionary<int, bool> chunksToUpdate = new Dictionary<int, bool>();
 
     //Queues of light nodes to remove/update
-    private Queue<LightNode> removalQueue, updateQueue;
+    private Queue<LightNode> activeRemovalQueue, activeUpdateQueue;
+    private Queue<LightNode> ambientRemovalQueue, ambientUpdateQueue;
 
     //List of light sources to re-sample after removing a light
     private List<LightSource> postRemovalUpdates;
@@ -62,9 +67,14 @@ public class LightController : Singleton<LightController>
     //A value to help make a smooth transition from light to no light at the end of falloff
     public float passThreshold;
 
-    public Shader lightMapShader;
+    public Shader activeLightMapShader;
+    public Shader ambientLightMapShader;
     public GameObject lightSourcePrefab;
     public Transform lightSourceParent;
+
+    public Material skyOverlayMat;
+
+    private Dictionary<int, bool> updatedSkyChunks = new Dictionary<int, bool>();
 
     public void Start() {
         wCon = GetComponent<WorldController>();
@@ -115,62 +125,109 @@ public class LightController : Singleton<LightController>
 
         int chunkSize = WorldController.chunkSize;
 
-        if (lightValues == null) {
-            lightValues = new Color[worldWidth,worldHeight];
+        if (activeLightValues == null) {
+            activeLightValues = new Color[worldWidth,worldHeight];
         }
+
+        if (ambientLightValues == null) {
+            ambientLightValues = new Color[worldWidth,worldHeight];
+        }
+
+        skyTiles = new int[worldWidth,worldHeight];
 
         int chunkCount = WorldController.GetChunkCount();
 
-        chunkLightTexes = new Texture2D[chunkCount];
-        chunkBGLightTexes = new Texture2D[chunkCount];
-        chunkLightMats = new Material[chunkCount];
-        chunkBGLightMats = new Material[chunkCount];
-
-        Color[,] baseChunkLightValues = GetBlackArray(chunkSize, chunkSize);  
-        Color[] flattenedColors = flattenColorArray(baseChunkLightValues);
+        chunkActiveLightTexes = new Texture2D[chunkCount];
+        chunkAmbientLightTexes = new Texture2D[chunkCount];
+        chunkBGActiveLightTexes = new Texture2D[chunkCount];
+        chunkActiveLightMats = new Material[chunkCount];
+        chunkAmbientLightMats = new Material[chunkCount];
+        chunkBGActiveLightMats = new Material[chunkCount];
 
         for (int chunk = 0; chunk < chunkCount; chunk++) {
-            Texture2D newLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBA32, false);
-            Texture2D newBGLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBA32, false);
-            Material newLightMat = new Material(lightMapShader);
-            Material newBGLightMat = new Material(lightMapShader);
+            Color[,] baseActiveLightValues = GetColorArray(chunkSize, chunkSize, Color.black, Color.black, true, chunk);  
+            Color[,] baseAmbientLightValues = GetColorArray(chunkSize, chunkSize, Color.black, Color.white, true, chunk);  
+            Color[] flattenedActiveColors = FlattenColorArray(baseActiveLightValues);
+            Color[] flattenedAmbientColors = FlattenColorArray(baseAmbientLightValues);
+
+            Texture2D newActiveLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBA32, false);
+            Texture2D newAmbientLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBA32, false);
+            Texture2D newBGActiveLightTex = new Texture2D(chunkSize, chunkSize, TextureFormat.RGBA32, false);
+            Material newActiveLightMat = new Material(activeLightMapShader);
+            Material newAmbientLightMat = new Material(ambientLightMapShader);
+            Material newBGActiveLightMat = new Material(activeLightMapShader);
             
-            //newLightTex.alphaIsTransparency = true;
-            //newBGLightTex.alphaIsTransparency = true;
-            newLightTex.filterMode = FilterMode.Point;
-            newBGLightTex.filterMode = FilterMode.Point;
+            newActiveLightTex.filterMode = FilterMode.Point;
+            newAmbientLightTex.filterMode = FilterMode.Point;
+            newBGActiveLightTex.filterMode = FilterMode.Point;
 
-            newLightTex.SetPixels(flattenedColors);
-            newBGLightTex.SetPixels(flattenedColors);
-            newLightTex.Apply();
-            newBGLightTex.Apply();
+            newActiveLightTex.SetPixels(flattenedActiveColors);
+            newAmbientLightTex.SetPixels(flattenedAmbientColors);
+            newBGActiveLightTex.SetPixels(flattenedActiveColors);
+            newActiveLightTex.Apply();
+            newAmbientLightTex.Apply();
+            newBGActiveLightTex.Apply();
 
-            chunkLightTexes[chunk] = newLightTex;
-            chunkBGLightTexes[chunk] = newBGLightTex;
+            chunkActiveLightTexes[chunk] = newActiveLightTex;
+            chunkAmbientLightTexes[chunk] = newAmbientLightTex;
+            chunkBGActiveLightTexes[chunk] = newBGActiveLightTex;
 
-            newLightMat.SetTexture("_MainTex", chunkLightTexes[chunk]);
-            newBGLightMat.SetTexture("_MainTex", chunkBGLightTexes[chunk]);
+            newActiveLightMat.SetTexture("_MainTex", chunkActiveLightTexes[chunk]);
+            newAmbientLightMat.SetTexture("_MainTex", chunkAmbientLightTexes[chunk]);
+            newAmbientLightMat.SetColor("_Color", skyColor);
+            newBGActiveLightMat.SetTexture("_MainTex", chunkBGActiveLightTexes[chunk]);
 
             GameObject chunkObj = cObjs.GetChunkObject(chunk);
             MeshRenderer fgRenderer = chunkObj.transform.Find("LightMap").GetComponent<MeshRenderer>();
+            MeshRenderer skyRenderer = chunkObj.transform.Find("SkylightMap").GetComponent<MeshRenderer>();
             MeshRenderer bgRenderer = chunkObj.transform.Find("BGLightMap").GetComponent<MeshRenderer>();
-            fgRenderer.material = newLightMat;
-            bgRenderer.material = newBGLightMat;
+            fgRenderer.material = newActiveLightMat;
+            skyRenderer.material = newAmbientLightMat;
+            bgRenderer.material = newBGActiveLightMat;
 
-            chunkLightMats[chunk] = newLightMat;
-            chunkBGLightMats[chunk] = newBGLightMat;
+            chunkActiveLightMats[chunk] = newActiveLightMat;
+            chunkAmbientLightMats[chunk] = newAmbientLightMat;
+            chunkBGActiveLightMats[chunk] = newBGActiveLightMat;
         }
 
-        lightValues = GetBlackArray(worldWidth, worldHeight);  
-        flattenedColors = flattenColorArray(lightValues);
-
-        updateQueue = new Queue<LightNode>();
-        removalQueue = new Queue<LightNode>();
+        activeUpdateQueue = new Queue<LightNode>();
+        activeRemovalQueue = new Queue<LightNode>();
+        ambientUpdateQueue = new Queue<LightNode>();
+        ambientRemovalQueue = new Queue<LightNode>();
         postRemovalUpdates = new List<LightSource>();
         removalPositions = new List<Vector3Int>();
         dynamicLights = new List<DynamicLightSource>();
 
+        IntializeSkyChunks();
+        UpdateSkylight(skyColor);
+
         HandleNewWorld();
+    }
+
+    Color InvertColor(Color startColor) {
+        return new Color(1-startColor.r, 1-startColor.g, 1-startColor.b, startColor.a);
+    }
+
+    /// <summary>
+    /// Updates the sky color and then updates every chunk's sky light map color
+    /// </summary>
+    /// <param name="newColor"></param>
+    /// <returns></returns>
+    public void UpdateSkylight(Color newColor) {
+        skyColor = newColor;
+        int numChunks = WorldController.GetChunkCount();
+        for (int chunk = 0; chunk < numChunks; chunk++) {
+            chunkAmbientLightMats[chunk].SetColor("_Color", newColor);
+        }
+        skyOverlayMat.SetColor("_Color", newColor);
+    }
+
+    void IntializeSkyChunks() {
+        for (int x = 0; x < worldWidth; x++) {
+            for (int y = 0; y < worldHeight; y++) {
+                skyTiles[x, y] = wCon.isSky(x, y) ? 1 : 0;
+            }
+        }
     }
 
     /// <summary>
@@ -179,15 +236,25 @@ public class LightController : Singleton<LightController>
     /// <param name="width"></param>
     /// <param name="height"></param>
     /// <returns></returns>
-    Color[,] GetBlackArray(int width, int height) {
+    Color[,] GetColorArray(int width, int height, Color tileColor, Color skyColor, bool isChunk = false, int chunk = 0) {
         Color[,] blackArr = new Color[width, height];
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (wCon.isSky(x, y)) {
-                    blackArr[x, y] = Color.white;
+                if (!isChunk) {
+                    if (wCon.isSky(x, y)) {
+                        blackArr[x, y] = skyColor;
+                    } else {
+                        blackArr[x, y] = tileColor;
+                    }
+                } else {
+                    Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+                    if (wCon.isSky(chunkPos.x + x, chunkPos.y + y)) {
+                        blackArr[x, y] = skyColor;
+                    } else {
+                        blackArr[x, y] = tileColor;
+                    }
                 }
-                blackArr[x, y] = Color.black;
             }
         }
 
@@ -199,7 +266,7 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <param name="colors"></param>
     /// <returns></returns>
-    Color[] flattenColorArray(Color[,] colors) {
+    Color[] FlattenColorArray(Color[,] colors) {
         Color[] newArr = new Color[colors.Length];
         int index = 0;
         for (int y = 0; y <= colors.GetUpperBound(1); y++) {
@@ -219,14 +286,28 @@ public class LightController : Singleton<LightController>
     /// <param name="y"></param>
     /// <param name="newColor"></param>
     /// <returns></returns>
-    void QueueChunkLightTextureUpdate(int x, int y, Color newColor) {
+    void QueueChunkActiveLightTextureUpdate(int x, int y, Color newColor) {
+        int chunkToUpdate = WorldController.GetChunk(x, y);
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunkToUpdate);
+        chunkActiveLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, newColor);
+        chunksToUpdate[chunkToUpdate] = true;
+    }
+
+    /// <summary>
+    /// Updates a chunk's sky lightmap texture without applying it. (Possible optimization: check if texture update is redundant and skip it)
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <param name="newColor"></param>
+    /// <returns></returns>
+    void QueueChunkAmbientLightTextureUpdate(int x, int y, Color newColor) {
         if (wCon.isSky(x, y)) {
             newColor = Color.white;
         }
-
+        
         int chunkToUpdate = WorldController.GetChunk(x, y);
         Vector2Int chunkPos = WorldController.GetChunkPosition(chunkToUpdate);
-        chunkLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, newColor);
+        chunkAmbientLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, newColor);
         chunksToUpdate[chunkToUpdate] = true;
     }
 
@@ -237,14 +318,10 @@ public class LightController : Singleton<LightController>
     /// <param name="y"></param>
     /// <param name="newColor"></param>
     /// <returns></returns>
-    void QueueChunkBGLightTextureUpdate(int x, int y, Color newColor) {
-        if (wCon.isSky(x, y)) {
-            newColor = Color.white;
-        }
-
+    void QueueChunkBGActiveLightTextureUpdate(int x, int y, Color newColor) {
         int chunkToUpdate = WorldController.GetChunk(x, y);
         Vector2Int chunkPos = WorldController.GetChunkPosition(chunkToUpdate);
-        chunkBGLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, newColor);
+        chunkBGActiveLightTexes[chunkToUpdate].SetPixel(x-chunkPos.x, y-chunkPos.y, newColor);
         chunksToUpdate[chunkToUpdate] = true;
     }
 
@@ -254,8 +331,9 @@ public class LightController : Singleton<LightController>
     /// <returns></returns>
     void ApplyChunkTextureLightUpdates() {
         foreach (int chunk in chunksToUpdate.Keys) {
-            chunkLightTexes[chunk].Apply();
-            chunkBGLightTexes[chunk].Apply();
+            chunkActiveLightTexes[chunk].Apply();
+            chunkAmbientLightTexes[chunk].Apply();
+            chunkBGActiveLightTexes[chunk].Apply();
         }
 
         chunksToUpdate.Clear();
@@ -282,19 +360,31 @@ public class LightController : Singleton<LightController>
 
                 // Mark the possible air blocks around it as light sources
                 Vector3Int tilePosition = new Vector3Int(x, y, 0);
-                if (wCon.isSky(x + 1, y))
-                    if (!GetLightSource(tilePosition + Vector3Int.right))
-                        CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength);
-                if (wCon.isSky(x - 1, y))
-                    if (!GetLightSource(tilePosition + Vector3Int.left))
-                        CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength);
-                if (wCon.isSky(x, y + 1))
-                    if (!GetLightSource(tilePosition + Vector3Int.up))
-                        CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength);
-                if (wCon.isSky(x, y - 1))
-                    if (!GetLightSource(tilePosition + Vector3Int.down))
-                        CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength);
+                if (wCon.isSky(x + 1, y)) {
+                    if (!GetLightSource(tilePosition + Vector3Int.right)) {
+                        int chunk = WorldController.GetChunk(x+1, y);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength, true, true);
+                    }
                 }
+                if (wCon.isSky(x - 1, y)) {
+                    if (!GetLightSource(tilePosition + Vector3Int.left)) {
+                        int chunk = WorldController.GetChunk(x-1, y);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength, true, true);
+                    }
+                }
+                if (wCon.isSky(x, y + 1)) {
+                    if (!GetLightSource(tilePosition + Vector3Int.up)) {
+                        int chunk = WorldController.GetChunk(x, y+1);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength, true, true);
+                    }
+                }
+                if (wCon.isSky(x, y - 1)) {
+                    if (!GetLightSource(tilePosition + Vector3Int.down)) {
+                        int chunk = WorldController.GetChunk(x, y-1);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength, true, true);
+                    }
+                }
+            }
         }
 
         ApplyChunkTextureLightUpdates();
@@ -331,7 +421,7 @@ public class LightController : Singleton<LightController>
 
                 //Previous tile was not light source
                 else {
-                    Color currentColor = lightValues[x, y];
+                    Color currentColor = activeLightValues[x, y];
                     if (currentColor != Color.black && currentColor != Color.clear)
                     {
                         //Since new block is background only, update its light to reflect the new falloff
@@ -341,8 +431,8 @@ public class LightController : Singleton<LightController>
                             Mathf.Clamp(currentColor.g + colorIncrement, 0f, 1f),
                             Mathf.Clamp(currentColor.b + colorIncrement, 0f, 1f));
 
-                        QueueChunkLightTextureUpdate(x, y, currentColor);
-                        QueueChunkBGLightTextureUpdate(x, y, currentColor);
+                        QueueChunkActiveLightTextureUpdate(x, y, currentColor);
+                        QueueChunkBGActiveLightTextureUpdate(x, y, currentColor);
 
                         //Refresh light values by creating a light source here and removing it
                         LightSource source = CreateLightSource(new Vector3Int(x, y, 0), currentColor, 1f);
@@ -365,8 +455,12 @@ public class LightController : Singleton<LightController>
                     }
                 }
 
+                QueueChunkAmbientLightTextureUpdate(x, y, Color.black);
+
                 Vector3Int tilePosition = new Vector3Int(x, y, 0);
-                CreateLightSource(tilePosition, skyColor, 1f);
+                CreateLightSource(tilePosition, skyColor, 1f, true, true);
+
+                skyTiles[x, y] = 1;
             }
         }
         //-------------------------------------------------------------------------------------------------------
@@ -380,39 +474,71 @@ public class LightController : Singleton<LightController>
                 LightSource existingLight = GetLightSource(new Vector3Int(x, y, 0));
                 if (existingLight.LightStrength <= newTileData.lightStrength) {
                     CreateLightSource(new Vector3Int(x, y, 0), newTileData.lightColor, newTileData.lightStrength);
+
+                    bool wasSkyTile = skyTiles[x, y] == 1;
+
+                    if (wasSkyTile) {
+                        int chunk = WorldController.GetChunk(x, y);
+                        RemoveLight(existingLight, true);
+                    }
                 }
             }
+
+            skyTiles[x, y] = 0;
         } 
         
         //Adding new tile with no light value
         else {
             //Black out light values for the new tile
-            QueueChunkLightTextureUpdate(x, y, Color.black);
-            QueueChunkBGLightTextureUpdate(x, y, Color.black);
+            QueueChunkActiveLightTextureUpdate(x, y, Color.black);
+            QueueChunkBGActiveLightTextureUpdate(x, y, Color.black);
+            //QueueChunkAmbientLightTextureUpdate(x, y, Color.clear);
 
             //If new neighbors are sky blocks, add sky light sources there
             Vector3Int tilePosition = new Vector3Int(x, y, 0);
-            if (wCon.isSky(x + 1, y))
-                if (!GetLightSource(tilePosition + Vector3Int.right))
-                    CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength);
-            if (wCon.isSky(x - 1, y))
-                if (!GetLightSource(tilePosition + Vector3Int.left))
-                    CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength);
-            if (wCon.isSky(x, y + 1))
-                if (!GetLightSource(tilePosition + Vector3Int.up))
-                    CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength);
-            if (wCon.isSky(x, y - 1))
-                if (!GetLightSource(tilePosition + Vector3Int.down))
-                    CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength);
+            if (wCon.isSky(x + 1, y)) {
+                if (!GetLightSource(tilePosition + Vector3Int.right)) {
+                    int chunk = WorldController.GetChunk(x+1, y);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength, true, true);
+                }
+            }
+            if (wCon.isSky(x - 1, y)) {
+                if (!GetLightSource(tilePosition + Vector3Int.left)) {
+                    int chunk = WorldController.GetChunk(x-1, y);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength, true, true);
+                }
+            }
+            if (wCon.isSky(x, y + 1)) {
+                if (!GetLightSource(tilePosition + Vector3Int.up)) {
+                    int chunk = WorldController.GetChunk(x, y+1);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength, true, true);
+                }
+            }
+            if (wCon.isSky(x, y - 1)) {
+                if (!GetLightSource(tilePosition + Vector3Int.down)) {
+                    int chunk = WorldController.GetChunk(x, y-1);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength, true, true);
+                }
+            }
 
             //Remove any light sources previously at this location
             LightSource existingLight = GetLightSource(new Vector3Int(x, y, 0));
             if (existingLight == null)
-                existingLight = CreateLightSource(new Vector3Int(x, y, 0), lightValues[x, y], 1f, false);
+                existingLight = CreateLightSource(new Vector3Int(x, y, 0), activeLightValues[x, y], 1f, false);
 
-            RemoveLight(existingLight);
+            bool wasSkyTile = skyTiles[x, y] == 1;
+
+            if (wasSkyTile) {
+                int chunk = WorldController.GetChunk(x, y);
+                RemoveLight(existingLight, true);
+            } else {
+                RemoveLight(existingLight);
+            }
+
             existingLight.gameObject.SetActive(false);
             Destroy(existingLight.gameObject);
+
+            skyTiles[x, y] = 0;
         }
 
         ApplyChunkTextureLightUpdates();
@@ -426,12 +552,12 @@ public class LightController : Singleton<LightController>
     /// <param name="strength"></param>
     /// <param name="doUpdate"></param>
     /// <returns></returns>
-    public LightSource CreateLightSource(Vector3Int position, Color color, float strength, bool doUpdate = true) {
+    public LightSource CreateLightSource(Vector3Int position, Color color, float strength, bool doUpdate = true, bool isAmbient = false) {
         LightSource newLightSource = Instantiate(lightSourcePrefab, position, Quaternion.identity, lightSourceParent).GetComponent<LightSource>();
-        newLightSource.InitializeLight(color, strength);
+        newLightSource.InitializeLight(color, strength, isAmbient);
 
         if (doUpdate)
-            UpdateLight(newLightSource);
+            UpdateLight(newLightSource, isAmbient);
 
         int positionHash = Helpers.HashableInt(position.x, position.y);
 
@@ -443,12 +569,20 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <param name="position"></param>
     /// <returns></returns>
-    public LightSource GetLightSource(Vector3Int position)
+    public LightSource GetLightSource(Vector3Int position, bool isAmbient = false)
     {
         RaycastHit2D hit = Physics2D.Raycast(
             new Vector2(position.x + 0.5f, position.y + 0.5f), 
             Vector2.zero, 0f, 1 << 8);
-        return hit ? hit.collider.GetComponent<LightSource>() : null;
+
+        LightSource foundLight = hit ? hit.collider.GetComponent<LightSource>() : null;
+        if (foundLight == null)
+            return null;
+        
+        if (foundLight.Ambient == isAmbient)
+            return foundLight;
+        else
+            return null;
     }
 
     /// <summary>
@@ -457,26 +591,47 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <param name="light"></param>
     /// <returns></returns>
-    void UpdateLight(LightSource light) {
+    void UpdateLight(LightSource light, bool isAmbient = false) {
         LightNode lightNode;
         lightNode.position = light.Position;
         lightNode.color = light.lightColor * light.LightStrength;
 
-        Color currentColor = lightValues[light.Position.x, light.Position.y];
-        lightValues[light.Position.x, light.Position.y] = new Color(
-            Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
-            Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
-            Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength));
-        currentColor = lightValues[light.Position.x, light.Position.y];
+        Color currentColor = Color.black;
         
-        QueueChunkLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
-        QueueChunkBGLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        if (!isAmbient) {
+            currentColor = activeLightValues[light.Position.x, light.Position.y];
+            activeLightValues[light.Position.x, light.Position.y] = new Color(
+                Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
+                Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
+                Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength));
+            //currentColor = activeLightValues[light.Position.x, light.Position.y];
+        } else {
+            currentColor = ambientLightValues[light.Position.x, light.Position.y];
+            ambientLightValues[light.Position.x, light.Position.y] = new Color(
+                Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
+                Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
+                Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength));
+            //currentColor = ambientLightValues[light.Position.x, light.Position.y];
+        }
+        
+        if (!isAmbient) {
+            QueueChunkActiveLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+            QueueChunkBGActiveLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        } else {
+            QueueChunkAmbientLightTextureUpdate(light.Position.x, light.Position.y, currentColor);
+        }
 
         removalPositions.Clear();
-        updateQueue.Clear();
-        updateQueue.Enqueue(lightNode); 
         
-        PerformUpdatePasses(updateQueue);
+        if (!isAmbient) {
+            activeUpdateQueue.Clear();
+            activeUpdateQueue.Enqueue(lightNode); 
+            PerformUpdatePasses(activeUpdateQueue, true, true, true, isAmbient);
+        } else {
+            ambientUpdateQueue.Clear();
+            ambientUpdateQueue.Enqueue(lightNode); 
+            PerformUpdatePasses(ambientUpdateQueue, true, true, true, isAmbient);
+        }
     }
 
     /// <summary>
@@ -485,27 +640,48 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <param name="light"></param>
     /// <returns></returns>
-    void RemoveLight(LightSource light) {
+    void RemoveLight(LightSource light, bool isAmbient = false) {
         LightNode lightNode;
         lightNode.position = light.Position;
 
-        Color currentColor = lightValues[light.Position.x, light.Position.y];
-        lightNode.color = new Color(
-            Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
-            Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
-            Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength)
-        );
-        lightValues[light.Position.x, light.Position.y] = Color.black;
-        QueueChunkLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
-        QueueChunkBGLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        Color currentColor = Color.black;
+        if (!isAmbient) {
+            currentColor = activeLightValues[light.Position.x, light.Position.y];
+            lightNode.color = new Color(
+                Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
+                Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
+                Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength)
+            );
+            activeLightValues[light.Position.x, light.Position.y] = Color.black;
+        } else {
+            currentColor = ambientLightValues[light.Position.x, light.Position.y];
+            lightNode.color = new Color(
+                Mathf.Max(currentColor.r, light.lightColor.r * light.LightStrength),
+                Mathf.Max(currentColor.g, light.lightColor.g * light.LightStrength),
+                Mathf.Max(currentColor.b, light.lightColor.b * light.LightStrength)
+            );
+            ambientLightValues[light.Position.x, light.Position.y] = Color.black;
+        }
+        
+        if (!isAmbient) {
+            QueueChunkActiveLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+            QueueChunkBGActiveLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        } else {
+            QueueChunkAmbientLightTextureUpdate(light.Position.x, light.Position.y, Color.black);
+        }
 
-        removalQueue.Clear();
-        removalQueue.Enqueue(lightNode);
-        PerformRemovalPasses(removalQueue);
-
+        if (!isAmbient) {
+            activeRemovalQueue.Clear();
+            activeRemovalQueue.Enqueue(lightNode);
+            PerformRemovalPasses(activeRemovalQueue, isAmbient);
+        } else {
+            ambientRemovalQueue.Clear();
+            ambientRemovalQueue.Enqueue(lightNode);
+            PerformRemovalPasses(ambientRemovalQueue, isAmbient);
+        }
         foreach (LightSource lightSrc in postRemovalUpdates) {
             if (lightSrc != light) {
-                UpdateLight(lightSrc);
+                UpdateLight(lightSrc, isAmbient);
             }
         }
     }
@@ -519,7 +695,7 @@ public class LightController : Singleton<LightController>
     /// <param name="greenChannel"></param>
     /// <param name="blueChannel"></param>
     /// <returns></returns>
-    void PerformUpdatePasses(Queue<LightNode> queue, bool redChannel = true, bool greenChannel = true, bool blueChannel = true) {
+    void PerformUpdatePasses(Queue<LightNode> queue, bool redChannel = true, bool greenChannel = true, bool blueChannel = true, bool isAmbient = false) {
         if (!redChannel && !greenChannel && !blueChannel) {
             return;
         }
@@ -537,7 +713,7 @@ public class LightController : Singleton<LightController>
                 foreach (LightNode lightNode in backupQueue)
                     queue.Enqueue(lightNode);
             while (queue.Count > 0)
-                ExecuteUpdatePass(queue, LightingChannelMode.RED);
+                ExecuteUpdatePass(queue, LightingChannelMode.RED, isAmbient);
         }
 
         if (greenChannel) {
@@ -545,7 +721,7 @@ public class LightController : Singleton<LightController>
                 foreach (LightNode lightNode in backupQueue)
                     queue.Enqueue(lightNode);
             while (queue.Count > 0)
-                ExecuteUpdatePass(queue, LightingChannelMode.GREEN);
+                ExecuteUpdatePass(queue, LightingChannelMode.GREEN, isAmbient);
         }
 
         if (blueChannel) {
@@ -553,7 +729,7 @@ public class LightController : Singleton<LightController>
                 foreach (LightNode lightNode in backupQueue)
                     queue.Enqueue(lightNode);
             while (queue.Count > 0)
-                ExecuteUpdatePass(queue, LightingChannelMode.BLUE);
+                ExecuteUpdatePass(queue, LightingChannelMode.BLUE, isAmbient);
         }
     }
 
@@ -563,7 +739,7 @@ public class LightController : Singleton<LightController>
     /// <param name="queue"></param>
     /// <param name="colorMode"></param>
     /// <returns></returns>
-    void ExecuteUpdatePass(Queue<LightNode> queue, LightingChannelMode colorMode) {
+    void ExecuteUpdatePass(Queue<LightNode> queue, LightingChannelMode colorMode, bool isAmbient = false) {
         LightNode light = queue.Dequeue();
 
         float lightVal, lightValLeft, lightValUp, lightValRight, lightValDown;
@@ -574,10 +750,10 @@ public class LightController : Singleton<LightController>
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].r : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].r : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].r : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].r : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].r : ambientLightValues[light.position.x-1, light.position.y].r) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].r : ambientLightValues[light.position.x+1, light.position.y].r) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].r : ambientLightValues[light.position.x, light.position.y-1].r) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].r : ambientLightValues[light.position.x, light.position.y+1].r) : -1f;
 
             break;
             case LightingChannelMode.GREEN:
@@ -585,29 +761,29 @@ public class LightController : Singleton<LightController>
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].g : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].g : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].g : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].g : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].g : ambientLightValues[light.position.x-1, light.position.y].g) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].g : ambientLightValues[light.position.x+1, light.position.y].g) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].g : ambientLightValues[light.position.x, light.position.y-1].g) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].g : ambientLightValues[light.position.x, light.position.y+1].g) : -1f;
             break;
             case LightingChannelMode.BLUE:
                 lightVal = light.color.b;
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].b : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].b : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].b : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].b : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].b : ambientLightValues[light.position.x-1, light.position.y].b) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].b : ambientLightValues[light.position.x+1, light.position.y].b) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].b : ambientLightValues[light.position.x, light.position.y-1].b) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].b : ambientLightValues[light.position.x, light.position.y+1].b) : -1f;
             break;
             default:
                 return;
         }
 
-        ExtendUpdatePass(queue, light, lightVal, lightValLeft, Vector3Int.left, colorMode);
-        ExtendUpdatePass(queue, light, lightVal, lightValUp, Vector3Int.up, colorMode);
-        ExtendUpdatePass(queue, light, lightVal, lightValRight, Vector3Int.right, colorMode);
-        ExtendUpdatePass(queue, light, lightVal, lightValDown, Vector3Int.down, colorMode);
+        ExtendUpdatePass(queue, light, lightVal, lightValLeft, Vector3Int.left, colorMode, isAmbient);
+        ExtendUpdatePass(queue, light, lightVal, lightValUp, Vector3Int.up, colorMode, isAmbient);
+        ExtendUpdatePass(queue, light, lightVal, lightValRight, Vector3Int.right, colorMode, isAmbient);
+        ExtendUpdatePass(queue, light, lightVal, lightValDown, Vector3Int.down, colorMode, isAmbient);
     }
 
     /// <summary>
@@ -621,7 +797,7 @@ public class LightController : Singleton<LightController>
     /// <param name="direction"></param>
     /// <param name="colorMode"></param>
     /// <returns></returns>
-    private void ExtendUpdatePass(Queue<LightNode> queue, LightNode light, float startLightVal, float neighborLightVal, Vector3Int direction, LightingChannelMode colorMode) {
+    private void ExtendUpdatePass(Queue<LightNode> queue, LightNode light, float startLightVal, float neighborLightVal, Vector3Int direction, LightingChannelMode colorMode, bool isAmbient = false) {
         if (neighborLightVal == -1f)
             return;
 
@@ -639,7 +815,7 @@ public class LightController : Singleton<LightController>
 
             if (neighborLightVal + thisLightFalloff + passThreshold < startLightVal) {
                 startLightVal = Mathf.Clamp(startLightVal-thisLightFalloff, 0f, 1f);
-                Color currentColor = lightValues[neighborX, neighborY];
+                Color currentColor = !isAmbient ? activeLightValues[neighborX, neighborY] : ambientLightValues[neighborX, neighborY];
                 Color newColor;
                 switch(colorMode) {
                     case LightingChannelMode.RED:
@@ -658,10 +834,17 @@ public class LightController : Singleton<LightController>
                 LightNode newLightNode;
                 newLightNode.position = light.position+direction;
                 newLightNode.color = newColor;
-                lightValues[neighborX, neighborY] = newColor;
+                if (!isAmbient)
+                    activeLightValues[neighborX, neighborY] = newColor;
+                else
+                    ambientLightValues[neighborX, neighborY] = newColor;
 
-                QueueChunkLightTextureUpdate(neighborX, neighborY, newColor);
-                QueueChunkBGLightTextureUpdate(neighborX, neighborY, newColor);
+                if (!isAmbient) {
+                    QueueChunkActiveLightTextureUpdate(neighborX, neighborY, newColor);
+                    QueueChunkBGActiveLightTextureUpdate(neighborX, neighborY, newColor);
+                } else {
+                    QueueChunkAmbientLightTextureUpdate(neighborX, neighborY, newColor);
+                }
 
                 queue.Enqueue(newLightNode);
             }
@@ -674,7 +857,7 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <param name="queue"></param>
     /// <returns></returns>
-    void PerformRemovalPasses(Queue<LightNode> queue) {
+    void PerformRemovalPasses(Queue<LightNode> queue, bool isAmbient = false) {
         postRemovalUpdates.Clear();
 
         //Builds backup queue to re-run through for each color channel
@@ -684,29 +867,29 @@ public class LightController : Singleton<LightController>
         }
 
         removalPositions.Clear();
-        updateQueue.Clear();
+        activeUpdateQueue.Clear();
         //Red Channel
         while (queue.Count > 0)
-            ExecuteRemovalPass(queue, LightingChannelMode.RED);
-        PerformUpdatePasses(updateQueue, true, false, false);
+            ExecuteRemovalPass(queue, LightingChannelMode.RED, isAmbient);
+        PerformUpdatePasses(activeUpdateQueue, true, false, false, isAmbient);
 
         removalPositions.Clear();
-        updateQueue.Clear();
+        activeUpdateQueue.Clear();
         //Green Channel
         foreach (LightNode lightNode in backupQueue)
             queue.Enqueue(lightNode);
         while (queue.Count > 0)
-            ExecuteRemovalPass(queue, LightingChannelMode.GREEN);
-        PerformUpdatePasses(updateQueue, false, true, false);
+            ExecuteRemovalPass(queue, LightingChannelMode.GREEN, isAmbient);
+        PerformUpdatePasses(activeUpdateQueue, false, true, false, isAmbient);
 
         removalPositions.Clear();
-        updateQueue.Clear();
+        activeUpdateQueue.Clear();
         //Blue Channel
         foreach (LightNode lightNode in backupQueue)
             queue.Enqueue(lightNode);
         while (queue.Count > 0)
-            ExecuteRemovalPass(queue, LightingChannelMode.BLUE);
-        PerformUpdatePasses(updateQueue, false, false, true);
+            ExecuteRemovalPass(queue, LightingChannelMode.BLUE, isAmbient);
+        PerformUpdatePasses(activeUpdateQueue, false, false, true, isAmbient);
     }
 
     /// <summary>
@@ -715,7 +898,7 @@ public class LightController : Singleton<LightController>
     /// <param name="queue"></param>
     /// <param name="colorMode"></param>
     /// <returns></returns>
-    void ExecuteRemovalPass(Queue<LightNode> queue, LightingChannelMode colorMode) {
+    void ExecuteRemovalPass(Queue<LightNode> queue, LightingChannelMode colorMode, bool isAmbient = false) {
         LightNode light = queue.Dequeue();
 
         float lightVal, lightValLeft, lightValUp, lightValRight, lightValDown;
@@ -735,10 +918,10 @@ public class LightController : Singleton<LightController>
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].r : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].r : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].r : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].r : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].r : ambientLightValues[light.position.x-1, light.position.y].r) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].r : ambientLightValues[light.position.x+1, light.position.y].r) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].r : ambientLightValues[light.position.x, light.position.y-1].r) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].r : ambientLightValues[light.position.x, light.position.y+1].r) : -1f;
 
             break;
             case LightingChannelMode.GREEN:
@@ -746,29 +929,29 @@ public class LightController : Singleton<LightController>
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].g : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].g : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].g : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].g : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].g : ambientLightValues[light.position.x-1, light.position.y].g) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].g : ambientLightValues[light.position.x+1, light.position.y].g) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].g : ambientLightValues[light.position.x, light.position.y-1].g) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].g : ambientLightValues[light.position.x, light.position.y+1].g) : -1f;
             break;
             case LightingChannelMode.BLUE:
                 lightVal = light.color.b;
                 if (lightVal <= 0) {
                     return;
                 }
-                lightValLeft = (light.position.x - 1 >= 0) ? lightValues[light.position.x-1, light.position.y].b : -1f;
-                lightValRight = (light.position.x + 1 < worldWidth) ? lightValues[light.position.x+1, light.position.y].b : -1f;
-                lightValDown = (light.position.y - 1 >= 0) ? lightValues[light.position.x, light.position.y-1].b : -1f;
-                lightValUp = (light.position.y + 1 < worldHeight) ? lightValues[light.position.x, light.position.y+1].b : -1f;
+                lightValLeft = (light.position.x - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x-1, light.position.y].b : ambientLightValues[light.position.x-1, light.position.y].b) : -1f;
+                lightValRight = (light.position.x + 1 < worldWidth) ? (!isAmbient ? activeLightValues[light.position.x+1, light.position.y].b : ambientLightValues[light.position.x+1, light.position.y].b) : -1f;
+                lightValDown = (light.position.y - 1 >= 0) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y-1].b : ambientLightValues[light.position.x, light.position.y-1].b) : -1f;
+                lightValUp = (light.position.y + 1 < worldHeight) ? (!isAmbient ? activeLightValues[light.position.x, light.position.y+1].b : ambientLightValues[light.position.x, light.position.y+1].b) : -1f;
             break;
             default:
                 return;
         }
 
-        ExtendRemovalPass(queue, light, lightVal, lightValLeft, Vector3Int.left, colorMode);
-        ExtendRemovalPass(queue, light, lightVal, lightValUp, Vector3Int.up, colorMode);
-        ExtendRemovalPass(queue, light, lightVal, lightValRight, Vector3Int.right, colorMode);
-        ExtendRemovalPass(queue, light, lightVal, lightValDown, Vector3Int.down, colorMode);
+        ExtendRemovalPass(queue, light, lightVal, lightValLeft, Vector3Int.left, colorMode, isAmbient);
+        ExtendRemovalPass(queue, light, lightVal, lightValUp, Vector3Int.up, colorMode, isAmbient);
+        ExtendRemovalPass(queue, light, lightVal, lightValRight, Vector3Int.right, colorMode, isAmbient);
+        ExtendRemovalPass(queue, light, lightVal, lightValDown, Vector3Int.down, colorMode, isAmbient);
     }
 
     /// <summary>
@@ -782,13 +965,13 @@ public class LightController : Singleton<LightController>
     /// <param name="direction"></param>
     /// <param name="colorMode"></param>
     /// <returns></returns>
-    void ExtendRemovalPass(Queue<LightNode> queue, LightNode light, float startLightVal, float neighborLightVal, Vector3Int direction, LightingChannelMode colorMode) {
+    void ExtendRemovalPass(Queue<LightNode> queue, LightNode light, float startLightVal, float neighborLightVal, Vector3Int direction, LightingChannelMode colorMode, bool isAmbient = false) {
         int neighborX = light.position.x+direction.x;
         int neighborY = light.position.y+direction.y;
 
         if (neighborLightVal > 0f) {
             if (neighborLightVal < startLightVal) {
-                Color currentColor = lightValues[neighborX, neighborY];
+                Color currentColor = !isAmbient ? activeLightValues[neighborX, neighborY] : ambientLightValues[neighborX, neighborY];
                 Color newColor;
                 switch(colorMode) {
                     case LightingChannelMode.RED:
@@ -807,17 +990,23 @@ public class LightController : Singleton<LightController>
                 LightNode lightRemovalNode;
                 lightRemovalNode.position = light.position + direction;
                 lightRemovalNode.color = currentColor;
-                lightValues[neighborX, neighborY] = newColor;
+                if (!isAmbient)
+                    activeLightValues[neighborX, neighborY] = newColor;
+                else
+                    ambientLightValues[neighborX, neighborY] = newColor;
 
-                QueueChunkLightTextureUpdate(neighborX, neighborY, newColor);
-                QueueChunkBGLightTextureUpdate(neighborX, neighborY, newColor);
-
+                if (!isAmbient) {
+                    QueueChunkActiveLightTextureUpdate(neighborX, neighborY, newColor);
+                    QueueChunkBGActiveLightTextureUpdate(neighborX, neighborY, newColor);
+                } else {
+                    QueueChunkAmbientLightTextureUpdate(neighborX, neighborY, newColor);
+                }
                 queue.Enqueue(lightRemovalNode);
             } else {
                 LightNode lightNode;
                 lightNode.position = light.position + direction;
-                lightNode.color = lightValues[neighborX, neighborY];
-                updateQueue.Enqueue(lightNode);
+                lightNode.color = !isAmbient ? activeLightValues[neighborX, neighborY] : ambientLightValues[neighborX, neighborY];
+                activeUpdateQueue.Enqueue(lightNode);
             }
         }
     }

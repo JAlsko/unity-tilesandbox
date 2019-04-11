@@ -101,7 +101,8 @@ namespace UnityEngine
 
             int[] neighboringTiles = null;
             int thisChunk = (int)(tilemap.GetColor(Vector3Int.zero).a * 255);
-            GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles, thisChunk);
+            int thisLayer = (int)(tilemap.GetColor(Vector3Int.zero).b * 255);
+            GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles, thisLayer, thisChunk);
             var iden = Matrix4x4.identity;
 
             tileData.sprite = m_DefaultSprite;
@@ -271,8 +272,8 @@ namespace UnityEngine
         {
             switch (neighbor)
             {
-                case TilingRule.Neighbor.This: return TileManager.Instance.allTiles[tile].ruleTileBase == m_Self;//tile == 1;//tile == m_Self;
-                case TilingRule.Neighbor.NotThis: return TileManager.Instance.allTiles[tile].ruleTileBase != m_Self;//tile != 1;//tile != m_Self;
+                case TilingRule.Neighbor.This: return TileManager.Instance.allTiles[tile].tileBase == m_Self;//tile == 1;//tile == m_Self;
+                case TilingRule.Neighbor.NotThis: return TileManager.Instance.allTiles[tile].tileBase != m_Self;//tile != 1;//tile != m_Self;
             }
             return true;
         }
@@ -364,7 +365,7 @@ namespace UnityEngine
             neighboringTiles = m_CachedNeighboringTiles;
         }
 
-        protected virtual void GetMatchingNeighboringTiles(ITilemap tilemap, Vector3Int position, ref int[] neighboringTiles, int thisChunk = 0)
+        protected virtual void GetMatchingNeighboringTiles(ITilemap tilemap, Vector3Int position, ref int[] neighboringTiles, int thisLayer = 0, int thisChunk = 0)
         {
             if (neighboringTiles != null)
                 return;
@@ -392,7 +393,7 @@ namespace UnityEngine
                         /*if (tilePosition.x > 62) {
                             Debug.Log(tilePosition.x + " " + tilePosition.y);
                         }*/
-                        m_CachedNeighboringTileIDs[index++] = WorldController.Instance.GetTile(worldPosition.x, worldPosition.y, 0, thisChunk);
+                        m_CachedNeighboringTileIDs[index++] = WorldController.Instance.GetTile(worldPosition.x, worldPosition.y, thisLayer, thisChunk);
                     }
                 }
             }

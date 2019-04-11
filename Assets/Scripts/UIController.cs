@@ -80,7 +80,7 @@ public class UIController : Singleton<UIController>
         GameObject recipePanelObject = Instantiate(recipeUIPrefab);
         RecipePanel recipePanel = recipePanelObject.GetComponent<RecipePanel>();
         recipePanel.InitializeRecipe(recipe);
-        recipePanelObject.transform.parent = recipeListParent;
+        recipePanelObject.transform.SetParent(recipeListParent);
         return recipePanelObject;
     }
 

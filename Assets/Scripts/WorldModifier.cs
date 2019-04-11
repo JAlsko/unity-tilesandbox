@@ -10,6 +10,7 @@ public class WorldModifier : Singleton<WorldModifier>
     public float maxTileHealth = 10f;
     public float baseDigAmount = 3.5f;
     private float[,] tileHealth;
+    private SupportTile[,] supportedTiles;
 
     private int[,] tilesToHeal;
     private int[,] tilesMarkedToHeal;
@@ -29,6 +30,8 @@ public class WorldModifier : Singleton<WorldModifier>
         tilesMarkedToHeal = new int[worldWidth, worldHeight];
 
         tileHealth = new float[worldWidth, worldHeight];
+
+        supportedTiles = new SupportTile[worldWidth, worldHeight];
     }
 
     bool HealBlocks() {
@@ -67,12 +70,46 @@ public class WorldModifier : Singleton<WorldModifier>
         }
     }
 
+    private void CheckSupportBlocks(int x, int y, bool removingTile) {
+        int direction = -1;
+        for (int i = 1; i > -1; i--) {
+            for (int j = -1; j < 1; j++) {
+                direction++;
+                if (Mathf.Abs(i) == Mathf.Abs(j))
+                    continue;
+
+                int newX = x + j;
+                int newY = y + i;
+                if (newX < 0 || newX > supportedTiles.GetUpperBound(0) || newY < 0 || newY > supportedTiles.GetUpperBound(1))
+                    continue;
+
+                if (!supportedTiles[newX, newY].active)
+                    continue;
+
+                if (removingTile) {
+                    if (!supportedTiles[newX, newY].RemoveSide(direction)) {
+                        RemoveTile(newX, newY);
+                    }
+                } else {
+                    supportedTiles[newX, newY].AddSide(direction);
+                }
+            }
+        }
+    }
+
     //Public tile remover function
     public int RemoveTile(int x, int y) {
         int removedBlockID = wCon.RemoveTile(x, y);
         if (removedBlockID != -1) {
             string dropItem = TileManager.Instance.allTiles[removedBlockID].dropItem.name;
             ItemManager.SpawnDroppedItem(dropItem, x, y, Vector2.one*300f);
+            if (supportedTiles[x, y] != null)
+                supportedTiles[x, y].active = false;
+            else {
+                supportedTiles[x, y] = new SupportTile();
+                supportedTiles[x, y].active = false;
+            }
+            //CheckSupportBlocks(x, y, true);
         }
 
         return removedBlockID;
@@ -84,9 +121,24 @@ public class WorldModifier : Singleton<WorldModifier>
 
         if (addTileResult != -1) {
             tileHealth[x, y] = maxTileHealth;
+            TileInfo newTileInfo = TileManager.Instance.GetTile(newTile);
+            supportedTiles[x, y] = newTileInfo.supportTile;
+            //CheckSupportBlocks(x, y, false);
         }
 
         return addTileResult;
+    }
+
+    public void InitializeNewTile(int x, int y, int newTile) {
+        if (newTile == 0) {
+            supportedTiles[x, y] = new SupportTile();
+            supportedTiles[x, y].active = false;
+            return;
+        }
+        tileHealth[x, y] = maxTileHealth;
+        TileInfo newTileInfo = TileManager.Instance.GetTile(newTile);
+        supportedTiles[x, y] = newTileInfo.supportTile;
+        //CheckSupportBlocks(x, y, false);
     }
 
     public int PlaceTile(int newTile) {

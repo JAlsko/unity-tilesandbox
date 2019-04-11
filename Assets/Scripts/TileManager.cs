@@ -7,13 +7,17 @@ using UnityEngine.Tilemaps;
 
 [Serializable]
 public class TileInfo {
-    public MeshRuleTile tileBase;
-    public RuleTile ruleTileBase;
+    public TileBase tileBase;
     public float lightStrength;
     public Color lightColor = Color.white;
     public float maxTileHealth = 10f;
     public int digToolTier = 0;
     public Item dropItem;
+
+    public bool isSupportTile = false;
+    public bool variableSupport = false;
+    public bool topSupport, leftSupport, rightSupport, bottomSupport, backSupport = false;
+    public SupportTile supportTile;
 }
 
 public class TileManager : Singleton<TileManager>
@@ -62,15 +66,10 @@ public class TileManager : Singleton<TileManager>
         wRend = GetComponent<TileRenderer>();
     }
 
-    void Update()
-    {
-        
-    }
-
     //Public methods
     //-------------------------------------------------------------------------------
         //Main texture packer
-        public void PackRuleTileTextures() {
+        /*public void PackRuleTileTextures() {
             //Initialize atlas texture with our specifications, and then pack textures into it
             atlasTex = new Texture2D(maxAtlasSize, maxAtlasSize, TextureFormat.ARGB32, false);
             atlasTex.filterMode = FilterMode.Point;
@@ -98,10 +97,28 @@ public class TileManager : Singleton<TileManager>
             uv_coords = atlasTex.PackTextures(texturesToPack, 0, 2048, false);
             tileMaterial.SetTexture("_MainTex", atlasTex);
             texturesPacked = true;
+        }*/
+
+        public void InitializeSupportBlocks() {
+            foreach (TileInfo tile in allTiles) {
+                SupportTile sb = new SupportTile();
+                sb.active = tile.isSupportTile;
+
+                if (!tile.isSupportTile)
+                    continue;
+                
+                sb.anySupport = tile.variableSupport;
+                sb.requiredSupport[(int)SupportSide.top] = tile.topSupport;
+                sb.requiredSupport[(int)SupportSide.left] = tile.leftSupport;
+                sb.requiredSupport[(int)SupportSide.right] = tile.rightSupport;
+                sb.requiredSupport[(int)SupportSide.bottom] = tile.bottomSupport;
+                sb.requiredSupport[(int)SupportSide.back] = tile.backSupport;
+                tile.supportTile = sb;
+            }
         }
 
         //Public getter method for getting final UV coordinates for tile based on existing rules
-        public Vector2[] GetTileUV(int[,] world, int x, int y) {
+        /*public Vector2[] GetTileUV(int[,] world, int x, int y) {
             if (!texturesPacked) {
                 Debug.Log("Can't get tile UVs, textures not packed yet...");
                 return null;
@@ -118,7 +135,7 @@ public class TileManager : Singleton<TileManager>
             }
             Debug.Log("Couldn't find matching TilingRule for tile " + x + ", " + y);
             return null;
-        }
+        }*/
         
         //Public getter method to check texture pack status
         public bool AreTexturesPacked() {

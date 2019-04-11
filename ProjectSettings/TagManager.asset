@@ -28,8 +28,8 @@ TagManager:
   - ItemDetection
   - DroppedItems
   - Liquid
-  - 
-  - 
+  - FinalRender
+  - PreRender
   - 
   - 
   - 

@@ -234,16 +234,16 @@ public class TileRenderer : MonoBehaviour {
 
 			for (int x = 0; x < chunkSize; x++) {
 				for (int y = 0; y < chunkSize; y++) {
-					RuleTile fgTile = tMgr.allTiles[chunkTiles[x, y]].ruleTileBase;
-					RuleTile bgTile = tMgr.allTiles[chunkBGTiles[x, y]].ruleTileBase;
+					TileBase fgTile = tMgr.allTiles[chunkTiles[x, y]].tileBase;
+					TileBase bgTile = tMgr.allTiles[chunkBGTiles[x, y]].tileBase;
 
 					Vector3Int tilePos = new Vector3Int(x, y, 0);
 
 					fgTilemap.SetTile(tilePos, fgTile);
 					bgTilemap.SetTile(tilePos, bgTile);
 					if (x == 0 && y == 0) {
-						fgTilemap.SetColor(tilePos, new Color(1, 1, 1, chunk/255f));
-						bgTilemap.SetColor(tilePos, new Color(1, 1, 1, chunk/255f));
+						fgTilemap.SetColor(tilePos, new Color(1, 1, 0/255f, chunk/255f));
+						bgTilemap.SetColor(tilePos, new Color(1, 1, 1f/255f, chunk/255f));
 					}
 				}
 			}
@@ -259,16 +259,15 @@ public class TileRenderer : MonoBehaviour {
 				GameObject chunkObj = cObjs.GetChunkFG(chunk);
 				Tilemap fgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
 
-				RuleTile fgTile = tMgr.allTiles[newTile].ruleTileBase;
+				TileBase fgTile = tMgr.allTiles[newTile].tileBase;
 
 				fgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), fgTile);
 				fgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
-				Debug.Log(fgTilemap.GetColor(Vector3Int.zero).a*255);
 			} else {
 				GameObject chunkObj = cObjs.GetChunkBG(chunk);
 				Tilemap bgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
 
-				RuleTile bgTile = tMgr.allTiles[newTile].ruleTileBase;
+				TileBase bgTile = tMgr.allTiles[newTile].tileBase;
 
 				bgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), bgTile);
 				bgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
