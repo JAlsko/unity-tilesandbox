@@ -40,7 +40,7 @@ namespace UnityEngine
         }
 
         protected TileBase[] m_CachedNeighboringTiles = new TileBase[NeighborCount];
-        protected int[] m_CachedNeighboringTileIDs = new int[NeighborCount];
+        protected string[] m_CachedNeighboringTileIDs = new string[NeighborCount];
         private TileBase m_OverrideSelf;
         private Quaternion m_GameObjectQuaternion;
 
@@ -99,7 +99,7 @@ namespace UnityEngine
             //TileBase[] neighboringTiles = null;
             //GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles);
 
-            int[] neighboringTiles = null;
+            string[] neighboringTiles = null;
             int thisChunk = (int)(tilemap.GetColor(Vector3Int.zero).a * 255);
             int thisLayer = (int)(tilemap.GetColor(Vector3Int.zero).b * 255);
             GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles, thisLayer, thisChunk);
@@ -213,7 +213,7 @@ namespace UnityEngine
             return false;
         }
 
-        protected virtual bool RuleMatches(TilingRule rule, ref int[] neighboringTiles, ref Matrix4x4 transform)
+        protected virtual bool RuleMatches(TilingRule rule, ref string[] neighboringTiles, ref Matrix4x4 transform)
         {
             // Check rule against rotations of 0, 90, 180, 270
             for (int angle = 0; angle <= (rule.m_RuleTransform == TilingRule.Transform.Rotated ? 270 : 0); angle += 90)
@@ -268,12 +268,12 @@ namespace UnityEngine
             return true;
         }
 
-        public virtual bool RuleMatch(int neighbor, int tile)
+        public virtual bool RuleMatch(int neighbor, string tile)
         {
             switch (neighbor)
             {
-                case TilingRule.Neighbor.This: return TileManager.Instance.allTiles[tile].tileBase == m_Self;//tile == 1;//tile == m_Self;
-                case TilingRule.Neighbor.NotThis: return TileManager.Instance.allTiles[tile].tileBase != m_Self;//tile != 1;//tile != m_Self;
+                case TilingRule.Neighbor.This: return TileController.Instance.GetTile(tile).tileBase == m_Self;//tile == 1;//tile == m_Self;
+                case TilingRule.Neighbor.NotThis: return TileController.Instance.GetTile(tile).tileBase != m_Self;//tile != 1;//tile != m_Self;
             }
             return true;
         }
@@ -294,12 +294,12 @@ namespace UnityEngine
             return true;
         }
 
-        protected bool RuleMatches(TilingRule rule, ref int[] neighboringTiles, int angle)
+        protected bool RuleMatches(TilingRule rule, ref string[] neighboringTiles, int angle)
         {
             for (int i = 0; i < neighborCount; ++i)
             {
                 int index = GetRotatedIndex(i, angle);
-                int tile = neighboringTiles[index];
+                string tile = neighboringTiles[index];
                 /*if (tile is RuleOverrideTile)
                     tile = (tile as RuleOverrideTile).m_RuntimeTile.m_Self;*/
                 if (!RuleMatch(rule.m_Neighbors[i], tile))
@@ -326,12 +326,12 @@ namespace UnityEngine
             return true;
         }
 
-        protected bool RuleMatches(TilingRule rule, ref int[] neighboringTiles, bool mirrorX, bool mirrorY)
+        protected bool RuleMatches(TilingRule rule, ref string[] neighboringTiles, bool mirrorX, bool mirrorY)
         {
             for (int i = 0; i < neighborCount; ++i)
             {
                 int index = GetMirroredIndex(i, mirrorX, mirrorY);
-                int tile = neighboringTiles[index];
+                string tile = neighboringTiles[index];
                 /*if (tile is RuleOverrideTile)
                     tile = (tile as RuleOverrideTile).m_RuntimeTile.m_Self;*/
                 if (!RuleMatch(rule.m_Neighbors[i], tile))
@@ -365,13 +365,13 @@ namespace UnityEngine
             neighboringTiles = m_CachedNeighboringTiles;
         }
 
-        protected virtual void GetMatchingNeighboringTiles(ITilemap tilemap, Vector3Int position, ref int[] neighboringTiles, int thisLayer = 0, int thisChunk = 0)
+        protected virtual void GetMatchingNeighboringTiles(ITilemap tilemap, Vector3Int position, ref string[] neighboringTiles, int thisLayer = 0, int thisChunk = 0)
         {
             if (neighboringTiles != null)
                 return;
 
             if (m_CachedNeighboringTileIDs == null || m_CachedNeighboringTileIDs.Length < neighborCount)
-                m_CachedNeighboringTileIDs = new int[neighborCount];
+                m_CachedNeighboringTileIDs = new string[neighborCount];
 
             int index = 0;
             for (int y = 1; y >= -1; y--)
@@ -381,7 +381,7 @@ namespace UnityEngine
                     if (x != 0 || y != 0)
                     {
                         if (WorldController.Instance == null) {
-                            m_CachedNeighboringTileIDs[index++] = 0;
+                            m_CachedNeighboringTileIDs[index++] = "air";
                             continue;
                         }
                         Vector3Int tilePosition = new Vector3Int(position.x + x, position.y + y, position.z);

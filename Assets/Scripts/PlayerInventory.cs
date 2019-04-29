@@ -34,9 +34,9 @@ public class PlayerInventory : MonoBehaviour
             invSlots[i].InitializeInventory(this, i);
         }
 
-        //AddItem(0, new ItemObject(1, 10));
-        //AddItem(1, new ItemObject(2, 1));
-        //AddItem(2, new ItemObject(1, 999));
+        CraftingController.Instance.LinkInventory(this);
+
+        AddItem(0, new ItemObject("pickaxe", 1));
     }
 
     bool IsValidInvSlot(int invSlot) {
@@ -49,6 +49,69 @@ public class PlayerInventory : MonoBehaviour
         }
 
         return openSlots[0];
+    }
+
+    public int GetItemCount(string itemToCount) {
+        int total = 0;
+
+        for (int i = 0; i < inventory.Length; i++) {
+            if (inventory[i] == null) {
+                continue;
+            }
+            total += (inventory[i].name == itemToCount ? inventory[i].currentStack : 0);
+        }
+
+        return total;
+    }
+
+    public int GetItemCount(Item itemToCount) {
+        return GetItemCount(itemToCount.name);
+    }
+
+    public bool RemoveItemStack(string itemToRemove, int countToRemove, bool removeBackwards = true) {
+        if (GetItemCount(itemToRemove) < countToRemove) {
+            return false;
+        }
+
+        int amountStillNeeded = countToRemove;
+
+        if (removeBackwards) {
+            for (int i = inventory.Length-1; i >= 0; i--) {
+                if (inventory[i] == null) {
+                    continue;
+                }
+
+                if (inventory[i].name != itemToRemove) {
+                    continue;
+                }
+
+                amountStillNeeded = RemoveSlotItemPartial(i, amountStillNeeded);
+
+                if (amountStillNeeded <= 0) {
+                    break;
+                }
+            }
+        } 
+        
+        else if (!removeBackwards) {
+            for (int i = 0; i < inventory.Length; i++) {
+                if (inventory[i].name != itemToRemove) {
+                    continue;
+                }
+
+                amountStillNeeded = RemoveSlotItemPartial(i, amountStillNeeded);
+
+                if (amountStillNeeded <= 0) {
+                    break;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public bool RemoveItemStack(Item itemToRemove, int countToRemove, bool removeBackwards = true) {
+        return RemoveItemStack(itemToRemove.name, countToRemove, removeBackwards);
     }
 
     int DistributeNewAddedItem(string name, int currentStack, int index) {
@@ -73,7 +136,7 @@ public class PlayerInventory : MonoBehaviour
                 int addableAmount = Mathf.Min(ItemManager.GetItem(name).maxStackSize - inventory[i].currentStack, currentStack);
                 inventory[i].currentStack += addableAmount;
                 //Debug.Log("Adding " + addableAmount + " to slot " + i);
-                invSlots[i].UpdateItemIcon(inventory[i]);
+                invSlots[i].UpdateItemVisuals(inventory[i]);
                 return DistributeNewAddedItem(name, currentStack - addableAmount, i+1);
             }
         }
@@ -112,7 +175,7 @@ public class PlayerInventory : MonoBehaviour
         }
             
         inventory[invSlot] = newItem;
-        invSlots[invSlot].UpdateItemIcon(newItem);
+        invSlots[invSlot].UpdateItemVisuals(newItem);
 
         openSlots.Remove(invSlot);
     }
@@ -129,16 +192,35 @@ public class PlayerInventory : MonoBehaviour
         return 1;
     }
 
-    public void RemoveItem(int invSlot) {
+    public void RemoveSlotItem(int invSlot) {
         if (!IsValidInvSlot(invSlot)) {
             return;
         }
 
         inventory[invSlot] = null;
-        invSlots[invSlot].UpdateItemIcon(null);
+        invSlots[invSlot].UpdateItemVisuals(null);
 
         openSlots.Add(invSlot);
         openSlots.Sort();
+    }
+
+    public int RemoveSlotItemPartial(int invSlot, int countToRemove) {
+        int leftOverAmount = countToRemove;
+
+        if (!IsValidInvSlot(invSlot)) {
+            return leftOverAmount;
+        }
+
+        if (countToRemove >= inventory[invSlot].currentStack) {
+            leftOverAmount = 0;
+            RemoveSlotItem(invSlot);
+        } else {
+            leftOverAmount -= inventory[invSlot].currentStack;
+            inventory[invSlot].currentStack -= countToRemove;
+            invSlots[invSlot].UpdateItemVisuals(inventory[invSlot]);
+        }
+        
+        return leftOverAmount;
     }
 
     public ItemObject GetContainedItem(int invSlot) {
@@ -158,6 +240,7 @@ public class PlayerInventory : MonoBehaviour
         ItemObject currentItem = inventory[invSlot];
         if (currentItem == null) {
             inventory[invSlot] = newItem;
+            openSlots.Remove(invSlot);
             return null;
         }
         else if (newItem.name == currentItem.name) {
@@ -188,7 +271,7 @@ public class PlayerInventory : MonoBehaviour
         }
 
         ItemObject itemToGive = inventory[invSlot];
-        RemoveItem(invSlot);
+        RemoveSlotItem(invSlot);
         return itemToGive;
     }
 
@@ -205,44 +288,8 @@ public class PlayerInventory : MonoBehaviour
         ItemObject itemToGive = new ItemObject(inventory[invSlot].name, takeableAmount + currentStackSize);
         inventory[invSlot].currentStack -= takeableAmount;
         if (inventory[invSlot].currentStack <= 0) {
-            RemoveItem(invSlot);
+            RemoveSlotItem(invSlot);
         }
         return itemToGive;
     }
-
-    //Crafting
-    //-------------------------------------------------------------------
-        /*public List<CraftRecipe> GetNearbyCraftables(List<IOItem> myIngredients, List<CraftRecipe> allRecipes, List<int> nearbyCraftingTiers) {
-            List<CraftRecipe> craftables = new List<CraftRecipe>();
-            
-            nearbyCraftingTiers.Sort();
-            int maxBaseTier = nearbyCraftingTiers[nearbyCraftingTiers.Count-1];
-            foreach (CraftRecipe recipe in allRecipes) {
-                bool haveIngredients = true;
-                foreach (IOItem ingredient in recipe.ingredients) {
-                    if (GetItemCount(ingredient.item.id) < ingredient.count) {
-                        haveIngredients = false;
-                        break;
-                    }
-                }
-                bool matchingTier = recipe.craftingTier >= 0 ? maxBaseTier >= recipe.craftingTier : nearbyCraftingTiers.Contains(recipe.craftingTier);
-                if (haveIngredients && matchingTier) {
-                    craftables.Add(recipe);
-                }
-            }
-            
-            return craftables;
-        }*/
-
-        int GetItemCount(string itemID) {
-            int totalItems = 0;
-            foreach (ItemObject item in inventory) {
-                if (item.name == itemID) {
-                    totalItems += item.currentStack;
-                }
-            }
-
-            return totalItems;
-        }
-    //--------------------------------------------------------------------
 }

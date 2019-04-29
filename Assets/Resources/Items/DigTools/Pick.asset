@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f37c83ad4defd7346ab807b5f9de2671, type: 3}
   m_Name: Pick
   m_EditorClassIdentifier: 
-  name: Pickaxe
+  name: pickaxe
   icon: {fileID: 21300000, guid: 1eaf0360c1dbf51479a148dac2e229c3, type: 3}
   flavorText: Breaks stuff.
   colliderSize: 1
-  maxStackSize: 999
-  consumeOnUse: 1
+  maxStackSize: 1
+  consumeOnUse: 0
   lightStrength: 0
   lightColor: {r: 0, g: 0, b: 0, a: 0}
   digAmount: 3.5
   digToolTier: 0
-  fireRate: 0.5
+  fireRate: 0.1

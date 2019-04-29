@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Text.RegularExpressions;
 
 public class Helpers : MonoBehaviour
 {
@@ -90,4 +91,22 @@ public class Helpers : MonoBehaviour
         }
         return arrString;
 	}
+
+    public static string AdjustCount(int count) {
+        string adjustedCount = "" + count;
+
+        if (count == 1)
+            adjustedCount = "";
+
+        return adjustedCount;
+    }
+
+    public static string AdjustItemName(string itemName) {
+        string adjustedName = itemName;
+
+        adjustedName = itemName.Replace('_', ' ');
+        adjustedName = Regex.Replace(adjustedName, @"(^\w)|(\s\w)", m => m.Value.ToUpper());
+
+        return adjustedName;
+    }
 }

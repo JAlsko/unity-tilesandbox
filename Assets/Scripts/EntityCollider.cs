@@ -7,7 +7,7 @@ public class EntityCollider : MonoBehaviour
 {
     public float tileHeight = 1;
 
-    int[,] world;
+    string[,] world;
     int colliderIndex;
 
     void Start() {
@@ -23,7 +23,7 @@ public class EntityCollider : MonoBehaviour
         colliderIndex = index;
     }
 
-    public void UpdateWorld(int[,] newWorld) {
+    public void UpdateWorld(string[,] newWorld) {
         world = newWorld;
     }
 

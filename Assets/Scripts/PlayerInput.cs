@@ -2,27 +2,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterMover))]
-public class PlayerInput : MonoBehaviour {
+public class PlayerInput : Singleton<PlayerInput> {
 
-	private CharacterMover cMov;
+	public CharacterMover cMov;
 	public Camera mainCam;
 
 	Vector3 curMousePos;
     public Transform tileSelectionBox;
-
-    void Start () {
-		cMov = GetComponent<CharacterMover>();
-	}
 	
 	void Update () {
-		curMousePos = mainCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -transform.position.z));
+		curMousePos = mainCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -mainCam.transform.position.z));
         curMousePos = SimplifyMousePos(curMousePos);
-        curMousePos = AdjustMousePos(curMousePos, .5f);
-        tileSelectionBox.position = curMousePos;
+        Vector3 adjustedMousePos = AdjustMousePos(curMousePos, .5f);
+        tileSelectionBox.position = adjustedMousePos;
 
 		HandleMove();
 		HandleClick();
+		HandleUI();
 	}
 
 	void HandleMove() {
@@ -42,6 +38,16 @@ public class PlayerInput : MonoBehaviour {
 		}
 	}
 
+	void HandleUI() {
+		if (Input.GetKeyDown(KeyCode.Escape)) {
+			UIController.Instance.ToggleInventory();
+		}
+
+		if (Input.GetKeyDown(KeyCode.I)) {
+			UIController.Instance.ToggleCrafting();
+		}
+	}
+
 	Vector3 SimplifyMousePos(Vector3 mousePos) {
         mousePos.x = (int)mousePos.x;
         mousePos.y = (int)mousePos.y;
@@ -54,7 +60,7 @@ public class PlayerInput : MonoBehaviour {
         return mousePos;
     }
 
-    public Vector2 GetMousePos() {
-        return new Vector2((int)curMousePos.x, (int)curMousePos.y);
+    public Vector3 GetMousePos() {
+        return curMousePos;
     }
 }

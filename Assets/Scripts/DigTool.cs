@@ -10,7 +10,7 @@ public class DigTool : Item {
     public int digToolTier = 0;
     public float fireRate = .5f;
 
-    override public int Use() {
-        return WorldModifier.Instance.DigTile(this.digAmount);
+    override public string Use() {
+        return TileController.Instance.DigTile(this.digAmount);
     }
 }

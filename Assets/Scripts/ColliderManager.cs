@@ -54,7 +54,7 @@ public class ColliderManager : MonoBehaviour
         }
     }
 
-    public void OnWorldUpdate(int[,] world) {
+    public void OnWorldUpdate(string[,] world) {
         foreach (KeyValuePair<int, EntityCollider> kvp in colliders) {
             EntityCollider col = kvp.Value;
             col.UpdateWorld(world);

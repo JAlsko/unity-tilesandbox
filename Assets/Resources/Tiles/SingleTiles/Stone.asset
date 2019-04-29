@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08377f1c8d96c746abf49b8730f9c9c, type: 3}
+  m_Name: Stone
+  m_EditorClassIdentifier: 
+  name: stone
+  tileBase: {fileID: 11400000, guid: bc99aa4a49fc37e42a8d3360a12773d7, type: 2}
+  lightStrength: 0
+  lightColor: {r: 1, g: 1, b: 1, a: 1}
+  maxTileHealth: 10
+  digToolTier: 0
+  dropItem: {fileID: 11400000, guid: 5e5a43d3010a3f7488fec292219d04a2, type: 2}
+  isSupporting: 1
+  requiresSupport: 0
+  takesAnySupport: 0
+  needsTopSupport: 0
+  needsLeftSupport: 0
+  needsRightSupport: 0
+  needsBottomSupport: 0
+  needsBackSupport: 0
+  givesTopSupport: 1
+  givesLeftSupport: 1
+  givesRightSupport: 1
+  givesBottomSupport: 1

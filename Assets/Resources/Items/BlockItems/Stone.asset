@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8083e5b0d6ef18b45b3039aa454616f5, type: 3}
   m_Name: Stone
   m_EditorClassIdentifier: 
-  name: Stone
+  name: stone
   icon: {fileID: 21300000, guid: 81998520d09db2b41b517bf98869a95d, type: 3}
   flavorText: A chunk of rock.
   colliderSize: 1
@@ -20,4 +20,5 @@ MonoBehaviour:
   consumeOnUse: 1
   lightStrength: 0
   lightColor: {r: 0, g: 0, b: 0, a: 0}
-  blockID: 2
+  blockID: stone
+  isMultiTile: 0

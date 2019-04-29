@@ -12,4 +12,9 @@ public class MultiTile : ScriptableObject
     public Sprite tileSprite;
     public int numTilesWidth = 1;
     public int numTilesHeight = 1;
+
+    public bool requiresSupport = false;
+    public bool takesAnySupport = false;
+    public bool needsTopSupport, needsLeftSupport, needsRightSupport, needsBottomSupport, needsBackSupport = false;
+    public bool givesTopSupport, givesLeftSupport, givesRightSupport, givesBottomSupport = false;
 }

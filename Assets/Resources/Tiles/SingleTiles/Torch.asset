@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08377f1c8d96c746abf49b8730f9c9c, type: 3}
+  m_Name: Torch
+  m_EditorClassIdentifier: 
+  name: torch
+  tileBase: {fileID: 11400000, guid: 94168d450e6b7564bad28c2d3f9f201f, type: 2}
+  lightStrength: 1
+  lightColor: {r: 1, g: 0.9000355, b: 0.3254717, a: 1}
+  maxTileHealth: 1
+  digToolTier: 0
+  dropItem: {fileID: 11400000, guid: 26f9771ad5b276243beeaa32a72f95f5, type: 2}
+  requiresSupport: 1
+  takesAnySupport: 1
+  needsTopSupport: 1
+  needsLeftSupport: 1
+  needsRightSupport: 1
+  needsBottomSupport: 1
+  needsBackSupport: 0
+  givesTopSupport: 1
+  givesLeftSupport: 1
+  givesRightSupport: 1
+  givesBottomSupport: 1

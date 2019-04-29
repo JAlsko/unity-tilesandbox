@@ -45,7 +45,7 @@ public class LiquidController : MonoBehaviour
     WorldController wCon;
     ChunkObjectsHolder cObjs;
 
-    int[,] world_fg;
+    string[,] world_fg;
 
     bool initialized = false;
     bool simulating = false;
@@ -195,7 +195,7 @@ public class LiquidController : MonoBehaviour
         for (int y = 1; y <= liquids.GetUpperBound(1)-1; y++) {
             for (int x = 1; x <= liquids.GetUpperBound(0)-1; x++) {
                 if (x <= world_fg.GetUpperBound(0) && y <= world_fg.GetUpperBound(1)) {
-                    if (world_fg[x, y] != 0) {
+                    if (world_fg[x, y] != "air") {
                         newArr[index] = new Color32(0, 0, 0, 255);
                     } else {
                         newArr[index] = new Color32(waterBaseColor.r, waterBaseColor.g, waterBaseColor.b, (byte) (Mathf.Clamp(liquids[x, y]/maxMass, 0, 1) * 255) );
@@ -293,7 +293,7 @@ public class LiquidController : MonoBehaviour
                 for (int y = 1; y < worldHeight-1; y++) {
                     totalIterations++;
 
-                    if (world_fg[x, y] != 0) {
+                    if (world_fg[x, y] != "air") {
                         continue;
                     }
 
@@ -303,7 +303,7 @@ public class LiquidController : MonoBehaviour
                         continue;
                     }
 
-                    if (world_fg[x, y-1] == 0) {
+                    if (world_fg[x, y-1] == "air") {
                         flow = GetStableStateB(remainingMass + sourceMass[x, y-1]) - sourceMass[x, y-1];
                         if (flow > minFlow) {
                             flow *= 0.5f;
@@ -326,7 +326,7 @@ public class LiquidController : MonoBehaviour
                         continue;
                     }
 
-                    if (world_fg[x-1, y] == 0) {
+                    if (world_fg[x-1, y] == "air") {
                         flow = (sourceMass[x, y] - sourceMass[x-1, y])/4;
                         if (flow > minFlow) {
                             flow *= 0.5f;
@@ -347,7 +347,7 @@ public class LiquidController : MonoBehaviour
                         continue;
                     }
 
-                    if (world_fg[x+1, y] == 0) {
+                    if (world_fg[x+1, y] == "air") {
                         flow = (sourceMass[x, y] - sourceMass[x+1, y])/4;
                         if (flow > minFlow) {
                             flow *= 0.5f;
@@ -368,7 +368,7 @@ public class LiquidController : MonoBehaviour
                         continue;
                     }
 
-                    if (world_fg[x, y+1] == 0) {
+                    if (world_fg[x, y+1] == "air") {
                         flow = remainingMass - GetStableStateB(remainingMass + sourceMass[x, y+1]);
                         if (flow > minFlow) {
                             flow *= 0.5f;

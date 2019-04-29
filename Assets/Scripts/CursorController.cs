@@ -62,9 +62,10 @@ public class CursorController : MonoBehaviour
 
     private InventorySlotObject selectedInvSlot;
 
-    void Start()
+    public void InitializeCursorControls()
     {
         playerHeldItemLight.enabled = false;
+        selectedInvSlot = UIController.Instance.invSlotObjs[0];
     }
 
     void Update()
@@ -90,8 +91,9 @@ public class CursorController : MonoBehaviour
             }
 
             GameObject invSlotObj = CheckHoveredObject();
+            GameObject craftSlotObj = CheckHoveredObject("CraftingOutput");
             
-            if (invSlotObj == null) {
+            if (invSlotObj == null && craftSlotObj == null) {
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.UseHotbarItem)) { //Input 0
                     UseHotbarItem(selectedInvSlot);
@@ -104,7 +106,7 @@ public class CursorController : MonoBehaviour
             } 
             
             else if (invSlotObj != null) {
-                InventorySlotObject invSlot = CheckHoveredObject().GetComponent<InventorySlotObject>();
+                InventorySlotObject invSlot = invSlotObj.GetComponent<InventorySlotObject>();
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.TakeWholeItem)) { //Input 2
                     TakeWholeItem(invSlot);                    
@@ -115,6 +117,13 @@ public class CursorController : MonoBehaviour
                 }
 
             }
+
+            else if (craftSlotObj != null) {
+                if (currentAction == ClickAction.Any || currentAction == ClickAction.TakeWholeItem) {
+                    CraftingOutput cOut = craftSlotObj.GetComponent<CraftingOutput>();
+                    TakeCraftingOutput(cOut);
+                }
+            }
         }
 
         else if (Input.GetKey(KeyCode.Mouse1)) {
@@ -123,11 +132,12 @@ public class CursorController : MonoBehaviour
             }
 
             GameObject invSlotObj = CheckHoveredObject();
+            GameObject craftSlotObj = CheckHoveredObject("CraftingOutput");
 
-            if (invSlotObj == null) {
+            if (invSlotObj == null && craftSlotObj == null) {
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.DropHotbarItem)) { //Input 4
-                    //DropHotbarItem();
+                    //Right click action with only hotbar item in hand
                 }
 
                 else if (heldItem != null && (currentAction == ClickAction.Any || currentAction == ClickAction.DropHeldItem)) { //Input 5
@@ -137,7 +147,7 @@ public class CursorController : MonoBehaviour
             } 
             
             else if (invSlotObj != null) {
-                InventorySlotObject invSlot = CheckHoveredObject().GetComponent<InventorySlotObject>();
+                InventorySlotObject invSlot = invSlotObj.GetComponent<InventorySlotObject>();
 
                 if (heldItem == null && (currentAction == ClickAction.Any || currentAction == ClickAction.TakeSingleItem)) { //Input 6
                     TakeSingleItem(invSlot);                    
@@ -145,7 +155,7 @@ public class CursorController : MonoBehaviour
 
                 else if (heldItem != null) {
                     ItemObject invItem = invSlot.GetContainedItem();
-                    if (invItem == null) { //Input 7
+                    if (invItem == null) {
                         if (currentAction == ClickAction.Any || currentAction == ClickAction.PlaceSingleItem) {
                             PlaceSingleItem(invSlot);
                         }
@@ -157,6 +167,13 @@ public class CursorController : MonoBehaviour
                     }
                 }
             }
+
+            else if (craftSlotObj != null) {
+                if (currentAction == ClickAction.Any || currentAction == ClickAction.TakeSingleItem) {
+                    CraftingOutput cOut = craftSlotObj.GetComponent<CraftingOutput>();
+                    TakeCraftingOutput(cOut);
+                }
+            }
         }
 
         if ((Input.GetKeyUp(KeyCode.Mouse0) && !Input.GetKey(KeyCode.Mouse1)) || (Input.GetKeyUp(KeyCode.Mouse1) && !Input.GetKey(KeyCode.Mouse0))) {
@@ -166,16 +183,13 @@ public class CursorController : MonoBehaviour
     }
 
     void UseHotbarItem(InventorySlotObject invSlot) {
-        if (selectedHotbarSlot == 0) {
-            WorldModifier.Instance.DigTile(5f);
-        } else {
-            ItemObject hotbarItem = invSlot.GetContainedItem();
-            if (hotbarItem == null) {
-                return;
-            }
-            hotbarItem.Use();
-            invSlot.UpdateItemIcon(hotbarItem);
+        ItemObject hotbarItem = invSlot.GetContainedItem();
+        if (hotbarItem == null) {
+            return;
         }
+        hotbarItem.Use();
+        invSlot.UpdateItemVisuals(hotbarItem);
+        
         IncrementClicks();
         currentAction = ClickAction.UseHotbarItem;
     }
@@ -219,6 +233,13 @@ public class CursorController : MonoBehaviour
         currentAction = ClickAction.DropHeldItem;
     }
 
+    void TakeCraftingOutput(CraftingOutput cOut) {
+        IncrementClicks();
+        heldItem = cOut.TakeCraftedItem(heldItem);
+        UpdateHeldItemVisuals();
+        currentAction = ClickAction.TakeSingleItem;
+    }
+
     void TakeSingleItem(InventorySlotObject invSlot) {
         IncrementClicks();
         if (heldItem == null) {
@@ -241,7 +262,7 @@ public class CursorController : MonoBehaviour
         cursor.position = Input.mousePosition;
     }
 
-    GameObject CheckHoveredObject() {
+    GameObject CheckHoveredObject(string tag = "InventorySlot") {
         pointerEventData = new PointerEventData(eventSystem);
         pointerEventData.position = Input.mousePosition;
 
@@ -249,7 +270,7 @@ public class CursorController : MonoBehaviour
         canvasRaycaster.Raycast(pointerEventData, raycastResults);
 
         foreach (RaycastResult result in raycastResults) {
-            if (result.gameObject.tag == "InventorySlot") {
+            if (result.gameObject.tag == tag) {
                 return result.gameObject;
             }
         }

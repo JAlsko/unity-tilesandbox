@@ -12,24 +12,23 @@ public class UIController : Singleton<UIController>
     public Transform hotbarUIParent;
     public InventorySlotObject[] invSlotObjs;
 
+    public Transform craftUIParent;
     public GameObject recipeUIPrefab;
     public Transform recipeListParent;
     public Dictionary<CraftRecipe.CraftingType, List<GameObject>> recipesByType = new Dictionary<CraftRecipe.CraftingType, List<GameObject>>();
 
+    public CraftingOutput recipeOutput;
     public TextMeshProUGUI recipeOutputName;
     public Image recipeOutputIcon;
     public TextMeshProUGUI recipeOutputFlavorText;
     public GameObject recipeOutputButton;
-    public Image recipeOutputButtonIcon;
-    public TextMeshProUGUI recipeOutputButtonCount;
 
     public Sprite emptySprite;
 
     void Start()
     {
-        InitializeInventoryItemUI();
+        //InitializeInventoryItemUI();
         //InitializeRecipeUI();
-        playerInv.LinkUI(this, invSlotObjs);
     }
 
     public void InitializeInventoryItemUI()
@@ -47,6 +46,7 @@ public class UIController : Singleton<UIController>
         }
 
         HighlightInvSlot(0);
+        playerInv.LinkUI(this, invSlotObjs);
     }
 
     public void HighlightInvSlot(int index) {
@@ -55,6 +55,14 @@ public class UIController : Singleton<UIController>
 
     public void UnhighlightInvSlot(int index) {
         invSlotObjs[index].UnhighlightSlot();
+    }
+
+    public void ToggleInventory() {
+        inventoryUIParent.gameObject.SetActive(!inventoryUIParent.gameObject.activeInHierarchy);
+    }
+
+    public void ToggleCrafting() {
+        craftUIParent.gameObject.SetActive(!craftUIParent.gameObject.activeInHierarchy);
     }
 
     public void InitializeRecipeUI() {
@@ -78,7 +86,7 @@ public class UIController : Singleton<UIController>
 
     GameObject CreateRecipePanel(CraftRecipe recipe) {
         GameObject recipePanelObject = Instantiate(recipeUIPrefab);
-        RecipePanel recipePanel = recipePanelObject.GetComponent<RecipePanel>();
+        RecipePanel recipePanel = recipePanelObject.GetComponentInChildren<RecipePanel>();
         recipePanel.InitializeRecipe(recipe);
         recipePanelObject.transform.SetParent(recipeListParent);
         return recipePanelObject;
@@ -101,15 +109,14 @@ public class UIController : Singleton<UIController>
     public void FocusCraftingRecipe(RecipePanel recipePanel) {
         CraftRecipe recipe = recipePanel.recipe;
         ShowRecipeOutput(recipe);
+        recipeOutput.UpdateCraftRecipe(recipe);
     }
 
     void ShowRecipeOutput(CraftRecipe recipe) {
-        recipeOutputName.text = recipe.outputItem.name;
+        recipeOutputName.text = Helpers.AdjustItemName(recipe.outputItem.name);
         recipeOutputIcon.sprite = recipe.outputItem.icon;
-        recipeOutputFlavorText.text = "";
+        recipeOutputFlavorText.text = recipe.outputItem.flavorText;
         recipeOutputButton.SetActive(true);
-        recipeOutputButtonIcon.sprite = recipe.outputItem.icon;
-        recipeOutputButtonCount.text = recipe.outputCount + "";
     }
 
     void HideRecipeOutput() {
@@ -117,7 +124,6 @@ public class UIController : Singleton<UIController>
         recipeOutputIcon.sprite = emptySprite;
         recipeOutputFlavorText.text = "";
         recipeOutputButton.SetActive(false);
-        recipeOutputButtonIcon.sprite = emptySprite;
-        recipeOutputButtonCount.text = "";
+        recipeOutput.UpdateCraftRecipe(null);
     }
 }

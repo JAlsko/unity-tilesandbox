@@ -13,13 +13,13 @@ public class UVTile {
 
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(WorldCollider))]
-[RequireComponent(typeof(TileManager))]
+[RequireComponent(typeof(TileController))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
-public class TileRenderer : MonoBehaviour {
+public class TileRenderer : Singleton<TileRenderer> {
 	//Other neccessary world scripts
 	private WorldController wCon;
 	private WorldCollider wCol;
-	private TileManager tMgr;
+	private TileController tMgr;
 	private ChunkObjectsHolder cObjs;
 
 	//Object to hold all chunk objects
@@ -35,7 +35,7 @@ public class TileRenderer : MonoBehaviour {
 	void Start() {
 		wCon = GetComponent<WorldController>();
 		wCol = GetComponent<WorldCollider>();
-		tMgr = GetComponent<TileManager>();
+		tMgr = GetComponent<TileController>();
 		cObjs = GetComponent<ChunkObjectsHolder>();
 
 		chunkObjs = new GameObject[0];
@@ -215,8 +215,8 @@ public class TileRenderer : MonoBehaviour {
 			ShowChunk(chunk);
 		}*/
 		public void RenderChunkTiles(int chunk) {
-			int[,] chunkTiles = wCon.GetChunkTiles(chunk, 0);
-			int[,] chunkBGTiles = wCon.GetChunkTiles(chunk, 1);
+			string[,] chunkTiles = wCon.GetChunkTiles(chunk, 0);
+			string[,] chunkBGTiles = wCon.GetChunkTiles(chunk, 1);
 
 			int chunkSize = WorldController.chunkSize;
 
@@ -234,8 +234,8 @@ public class TileRenderer : MonoBehaviour {
 
 			for (int x = 0; x < chunkSize; x++) {
 				for (int y = 0; y < chunkSize; y++) {
-					TileBase fgTile = tMgr.allTiles[chunkTiles[x, y]].tileBase;
-					TileBase bgTile = tMgr.allTiles[chunkBGTiles[x, y]].tileBase;
+					TileBase fgTile = tMgr.GetTile(chunkTiles[x, y]).tileBase;
+					TileBase bgTile = tMgr.GetTile(chunkBGTiles[x, y]).tileBase;
 
 					Vector3Int tilePos = new Vector3Int(x, y, 0);
 
@@ -249,7 +249,7 @@ public class TileRenderer : MonoBehaviour {
 			}
 		}
 
-		public void RenderTile(int x, int y, int newTile, int worldLayer = 0) {
+		public void RenderTile(int x, int y, TileBase newTile, int worldLayer = 0) {
 			int chunk = WorldController.GetChunk(x, y);
 			Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
 			int chunkX = x - chunkPos.x;
@@ -259,7 +259,28 @@ public class TileRenderer : MonoBehaviour {
 				GameObject chunkObj = cObjs.GetChunkFG(chunk);
 				Tilemap fgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
 
-				TileBase fgTile = tMgr.allTiles[newTile].tileBase;
+				fgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), newTile);
+				fgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
+			} else {
+				GameObject chunkObj = cObjs.GetChunkBG(chunk);
+				Tilemap bgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
+
+				bgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), newTile);
+				bgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
+			}
+		}
+
+		public void RenderTile(int x, int y, string newTile, int worldLayer = 0) {
+			int chunk = WorldController.GetChunk(x, y);
+			Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+			int chunkX = x - chunkPos.x;
+			int chunkY = y - chunkPos.y;
+
+			if (worldLayer == 0) {
+				GameObject chunkObj = cObjs.GetChunkFG(chunk);
+				Tilemap fgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
+
+				TileBase fgTile = tMgr.GetTile(newTile).tileBase;
 
 				fgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), fgTile);
 				fgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));
@@ -267,7 +288,7 @@ public class TileRenderer : MonoBehaviour {
 				GameObject chunkObj = cObjs.GetChunkBG(chunk);
 				Tilemap bgTilemap = chunkObj.GetComponentInChildren<Tilemap>();
 
-				TileBase bgTile = tMgr.allTiles[newTile].tileBase;
+				TileBase bgTile = tMgr.GetTile(newTile).tileBase;
 
 				bgTilemap.SetTile(new Vector3Int(chunkX, chunkY, 0), bgTile);
 				bgTilemap.RefreshTile(new Vector3Int(chunkX, chunkY, 0));

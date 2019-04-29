@@ -12,14 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d535a45a765ccfd42b0f0c17602392f0, type: 3}
   m_Name: Chest
   m_EditorClassIdentifier: 
+  tileName: wooden_chest
   tileSprite: {fileID: 21300000, guid: 3f853516745d5d5408dde5c5d4358e72, type: 3}
-  spriteSections:
-  - {fileID: 21300000, guid: 3f853516745d5d5408dde5c5d4358e72, type: 3}
-  - {fileID: 21300002, guid: 3f853516745d5d5408dde5c5d4358e72, type: 3}
-  - {fileID: 21300004, guid: 3f853516745d5d5408dde5c5d4358e72, type: 3}
-  - {fileID: 21300006, guid: 3f853516745d5d5408dde5c5d4358e72, type: 3}
-  tileBlock:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  numTilesWidth: 2
+  numTilesHeight: 2
+  requiresSupport: 1
+  takesAnySupport: 0
+  needsTopSupport: 0
+  needsLeftSupport: 0
+  needsRightSupport: 0
+  needsBottomSupport: 1
+  needsBackSupport: 0
+  givesTopSupport: 1
+  givesLeftSupport: 0
+  givesRightSupport: 0
+  givesBottomSupport: 0

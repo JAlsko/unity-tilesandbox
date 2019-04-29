@@ -4,7 +4,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(TileRenderer))]
-[RequireComponent(typeof(TileManager))]
+[RequireComponent(typeof(TileController))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
 public class LightController : Singleton<LightController>
 {
@@ -17,7 +17,7 @@ public class LightController : Singleton<LightController>
 
     private WorldController wCon;
     private TileRenderer wRend;
-    private TileManager tMgr;
+    private TileController tMgr;
     private ChunkObjectsHolder cObjs;
 
     private int worldWidth, worldHeight;
@@ -79,7 +79,7 @@ public class LightController : Singleton<LightController>
     public void Start() {
         wCon = GetComponent<WorldController>();
         wRend = GetComponent<TileRenderer>();
-        tMgr = GetComponent<TileManager>();
+        tMgr = GetComponent<TileController>();
         cObjs = GetComponent<ChunkObjectsHolder>();
 
         blockFalloff = 1f/blockLightPenetration;
@@ -181,9 +181,13 @@ public class LightController : Singleton<LightController>
             MeshRenderer fgRenderer = chunkObj.transform.Find("LightMap").GetComponent<MeshRenderer>();
             MeshRenderer skyRenderer = chunkObj.transform.Find("SkylightMap").GetComponent<MeshRenderer>();
             MeshRenderer bgRenderer = chunkObj.transform.Find("BGLightMap").GetComponent<MeshRenderer>();
+            MeshRenderer bgSkyRenderer = chunkObj.transform.Find("BGSkylightMap").GetComponent<MeshRenderer>();
+
             fgRenderer.material = newActiveLightMat;
             skyRenderer.material = newAmbientLightMat;
             bgRenderer.material = newBGActiveLightMat;
+            bgSkyRenderer.material = newAmbientLightMat;
+
 
             chunkActiveLightMats[chunk] = newActiveLightMat;
             chunkAmbientLightMats[chunk] = newAmbientLightMat;
@@ -345,17 +349,17 @@ public class LightController : Singleton<LightController>
     /// </summary>
     /// <returns></returns>
     public void HandleNewWorld() {
-        int[,] world_fg = wCon.GetWorld(0);
-        int[,] world_bg = wCon.GetWorld(1);
+        string[,] world_fg = wCon.GetWorld(0);
+        string[,] world_bg = wCon.GetWorld(1);
         for (int x = 0; x < worldWidth; x++) {
             for (int y = 0; y < worldHeight; y++) {
-                if (world_fg[x, y] == 0) {
+                if (world_fg[x, y] == "air") {
                     continue;
                 } 
                 
-                float tileLightVal = tMgr.allTiles[world_fg[x, y]].lightStrength;
+                float tileLightVal = tMgr.GetTile(world_fg[x, y]).lightStrength;
                 if (tileLightVal > 0) {
-                    CreateLightSource(new Vector3Int(x, y, 0), tMgr.allTiles[world_fg[x, y]].lightColor, tileLightVal);
+                    CreateLightSource(new Vector3Int(x, y, 0), tMgr.GetTile(world_fg[x, y]).lightColor, tileLightVal);
                 }
 
                 // Mark the possible air blocks around it as light sources
@@ -399,15 +403,15 @@ public class LightController : Singleton<LightController>
     /// <param name="newTile"></param>
     /// <param name="bgTile"></param>
     /// <returns></returns>
-    public void HandleNewTile(int x, int y, int newTile, int bgTile) {
-        TileInfo newTileData = tMgr.allTiles[newTile];
+    public void HandleNewTile(int x, int y, string newTile, string bgTile) {
+        SingleTileObject newTileData = tMgr.GetTile(newTile);
 
 
         //Tile is removed...
         //-------------------------------------------------------------------------------------------------------
-        if (newTile == 0) {
+        if (newTile == "air") {
             //Tile location has background
-            if (bgTile != 0) {
+            if (bgTile != "air") {
                 //Previous tile was non-sky light source
                 if (GetLightSource(new Vector3Int(x, y, 0))) {
                     LightSource lightSource = GetLightSource(new Vector3Int(x, y, 0));

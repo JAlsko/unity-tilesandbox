@@ -14,7 +14,7 @@ public abstract class Item : ScriptableObject {
     public float lightStrength = 0f;
     public Color lightColor;
 
-    public abstract int Use();
+    public abstract string Use();
 }
 
 public class ItemObject {
@@ -33,7 +33,7 @@ public class ItemObject {
         if (this.currentStack <= 0) {
             return;
         }
-        if (thisItem.Use() == -1) {
+        if (thisItem.Use() == "nulltile") {
             return;
         }
         if (thisItem.consumeOnUse) {
@@ -61,7 +61,7 @@ public class IOItem : ScriptableObject {
 public class LightItem : BlockItem {
     public float lightStrength = 1f;
     
-    new public int Use() {
-        return WorldModifier.Instance.PlaceTile(blockID);
+    new public string Use() {
+        return TileController.Instance.PlaceTile(blockID);
     }
 }

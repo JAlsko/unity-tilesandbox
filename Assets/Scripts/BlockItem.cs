@@ -6,9 +6,11 @@ using System;
 [Serializable]
 [CreateAssetMenu(fileName = "New Block Item", menuName = "Items/Block")]
 public class BlockItem : Item {
-    public int blockID;
+    public string blockID;
+    public bool isMultiTile = false;
 
-    override public int Use() {
-        return WorldModifier.Instance.PlaceTile(blockID);
+    override public string Use() {
+        string adjustedBlockID = isMultiTile ? "_" + blockID : blockID;
+        return TileController.Instance.PlaceTile(adjustedBlockID, isMultiTile);
     }
 }

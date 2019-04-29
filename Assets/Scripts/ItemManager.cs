@@ -19,10 +19,10 @@ public class ItemManager : Singleton<ItemManager>
     static List<Transform> s_chunkParents;
 
     public List<BlockItem> blockItems = new List<BlockItem>();
-    private static Dictionary<int, Item> items;
+    private static Dictionary<string, Item> items;
     private static Dictionary<string, Item> allItems = new Dictionary<string, Item>();
-    private static Dictionary<int, BlockItem> allBlockItems = new Dictionary<int, BlockItem>();
-    private static Dictionary<int, BlockItem> blocks;
+    private static Dictionary<string, BlockItem> allBlockItems = new Dictionary<string, BlockItem>();
+    private static Dictionary<string, BlockItem> blocks;
 
     public List<CraftRecipe> allRecipes = new List<CraftRecipe>();
 
@@ -93,23 +93,25 @@ public class ItemManager : Singleton<ItemManager>
     }
 
     public static Item GetItem(string name) {
+        if (name == "air")
+            return null;
         if (!initialized) {
             return null;
         }
         if (!allItems.ContainsKey(name)) {
             Debug.Log("No item called " + name);
-            name = "DefaultItem"; //Default item
+            return null;
         }
         return allItems[name];
     }
 
-    public static BlockItem GetBlockItem(int blockID) {
+    public static BlockItem GetBlockItem(string blockID) {
         if (!initialized) {
             return null;
         }
         if (!allBlockItems.ContainsKey(blockID)) {
             Debug.Log("Block of id " + blockID + " doesn't exist...");
-            blockID = 999;
+            blockID = "defaulttile";
         }
         return allBlockItems[blockID];
     }
@@ -130,11 +132,9 @@ public class ItemManager : Singleton<ItemManager>
 
     public static void SpawnDroppedItem(string name, float x, float y, Vector2 spawnForce, int startStack = 1) {
         ItemObject itemObj = new ItemObject(name, startStack);
+        if (GetItem(name) == null)
+            return;
         SpawnDroppedItem(itemObj, x, y, spawnForce);
     }
 
-    public static void SpawnDroppedBlock(int blockID, float x, float y, Vector2 spawnForce, int startStack = 1) {
-        ItemObject itemObj = new ItemObject(GetBlockItem(blockID).name, startStack);
-        SpawnDroppedItem(itemObj, x, y, spawnForce);
-    }
 }

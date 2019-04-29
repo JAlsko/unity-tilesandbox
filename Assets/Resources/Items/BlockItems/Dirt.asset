@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8083e5b0d6ef18b45b3039aa454616f5, type: 3}
   m_Name: Dirt
   m_EditorClassIdentifier: 
-  name: Dirt
+  name: dirt
   icon: {fileID: 21300000, guid: 5142538eb88371042b4314e2a2995745, type: 3}
   flavorText: A lump of dirt.
   colliderSize: 1
@@ -20,4 +20,5 @@ MonoBehaviour:
   consumeOnUse: 1
   lightStrength: 0
   lightColor: {r: 0, g: 0, b: 0, a: 0}
-  blockID: 1
+  blockID: dirt
+  isMultiTile: 0

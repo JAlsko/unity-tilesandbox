@@ -11,32 +11,36 @@ using System;
 [RequireComponent(typeof(WorldGenerator))]
 [RequireComponent(typeof(TileRenderer))]
 [RequireComponent(typeof(WorldCollider))]
-[RequireComponent(typeof(TileManager))]
+[RequireComponent(typeof(TileController))]
 [RequireComponent(typeof(LightController))]
 [RequireComponent(typeof(ItemManager))]
 [RequireComponent(typeof(TerrainGenerator))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
 [RequireComponent(typeof(LiquidController))]
 [RequireComponent(typeof(UIController))]
+[RequireComponent(typeof(CursorController))]
+[RequireComponent(typeof(NavGrid))]
 public class WorldController : Singleton<WorldController> {
 
 	static string WORLD_SAVE_NAME = "worldSave.dat";
 
 	//Primary tile arrays
-	public int[,] world_fg;
-	public int[,] world_bg;
+	public string[,] world_fg;
+	public string[,] world_bg;
 
 	//Other world scripts
 	TerrainGenerator tGen;
 	TileRenderer wRend;
 	WorldCollider wCol;
-	TileManager tMgr;
+	TileController tMgr;
 	LightController ltCon;
 	ItemManager iMgr;
 	ChunkObjectsHolder cObjs;
 	LiquidController lqCon;
-	WorldModifier wMod;
+	TileController wMod;
 	UIController uic;
+	CursorController cCon;
+	NavGrid navGrid;
 
 	public Transform player;
 
@@ -57,7 +61,7 @@ public class WorldController : Singleton<WorldController> {
 	private List<int> showingChunks;
 
 	//Temporary array to populate for functions that require array of tiles in a chunk
-	private int[,] chunkTiles;
+	private string[,] chunkTiles;
 
 	//Tracks player chunk movement
 	private int prevChunk;
@@ -77,13 +81,15 @@ public class WorldController : Singleton<WorldController> {
 		tGen = GetComponent<TerrainGenerator>();
 		wRend = GetComponent<TileRenderer>();
 		wCol = GetComponent<WorldCollider>();
-		tMgr = GetComponent<TileManager>();
+		tMgr = GetComponent<TileController>();
 		ltCon = GetComponent<LightController>();
 		iMgr = GetComponent<ItemManager>();
 		cObjs = GetComponent<ChunkObjectsHolder>();
 		lqCon = GetComponent<LiquidController>();
-		wMod = GetComponent<WorldModifier>();
+		wMod = GetComponent<TileController>();
 		uic = GetComponent<UIController>();
+		cCon = GetComponent<CursorController>();
+		navGrid = GetComponent<NavGrid>();
 
 		//Checks to make sure world generation size matches with chunk size
 		if (worldWidth % chunkSize != 0 || worldHeight % chunkSize != 0) {
@@ -101,7 +107,7 @@ public class WorldController : Singleton<WorldController> {
 
 		totalChunks = (worldWidth/chunkSize) * (worldHeight/chunkSize);
 
-		chunkTiles = new int[chunkSize, chunkSize];
+		chunkTiles = new string[chunkSize, chunkSize];
 
 		chunkRenderDiameter = (chunkRenderRadius*2)+1;
 
@@ -123,11 +129,12 @@ public class WorldController : Singleton<WorldController> {
 		/// Standardizes script initialization order instead of relying on 'Start()'.
         /// </summary>
         /// <returns></returns>
-		void StartupWorld(int[,] newWorld = null, int[,] newWorldBG = null) {
+		void StartupWorld(string[,] newWorld = null, string[,] newWorldBG = null) {
 			//world_fg = new int[s_worldWidth, s_worldHeight];
 			//world_bg = new int[s_worldWidth, s_worldHeight];
 			
-			InitializeTileHealth();
+			InitializeTiles();
+			InitializeTileStructure();
 			if (newWorld == null) {
 				NewWorld();
 			} else {
@@ -136,13 +143,14 @@ public class WorldController : Singleton<WorldController> {
 			}
 			InitializeChunks();
 			PlacePlayer();
-			InitializeTiles();
 			InitializeLiquids();
 			InitializeItems();
 			InitializeMultiTiles();
 			InitializeUI();
+			InitializeCursor();
 			RenderWorld();
 			GenerateLightMap();
+			InitializeNavGrid();
 			worldInitialized = true;
 		}
 
@@ -154,8 +162,8 @@ public class WorldController : Singleton<WorldController> {
 			//if (world_fg == null) {
 				Debug.Log("Generating new world!");
 				
-				world_fg = new int[s_worldWidth, s_worldHeight];
-				world_bg = new int[s_worldWidth, s_worldHeight];
+				world_fg = new string[s_worldWidth, s_worldHeight];
+				world_bg = new string[s_worldWidth, s_worldHeight];
 				
 				world_fg = tGen.GenerateNewWorld();
 				world_bg = TerrainGenerator.Get2DArrayCopy(world_fg);
@@ -185,8 +193,7 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		void InitializeTiles() {
-			tMgr.InitializeSupportBlocks();
-			//tMgr.PackRuleTileTextures();
+			tMgr.InitializeTiles();
 		}
 
 		/// <summary>
@@ -203,8 +210,8 @@ public class WorldController : Singleton<WorldController> {
 		/// Initializes tile health for existing tiles
 		/// </summary>
 		/// <returns></returns>
-		void InitializeTileHealth() {
-			wMod.InitializeTileHealth();
+		void InitializeTileStructure() {
+			wMod.InitializeTileStructures();
 		}
 
 		/// <summary>
@@ -246,7 +253,7 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		void InitializeMultiTiles() {
-			MultiTileManager.Instance.InitializeAllMultiTiles();
+			TileController.Instance.InitializeAllMultiTiles();
 		}
 
 		/// <summary>
@@ -256,6 +263,15 @@ public class WorldController : Singleton<WorldController> {
 		void InitializeUI() {
 			//uic.InitializeInventoryItemUI();
 			uic.InitializeRecipeUI();
+			uic.InitializeInventoryItemUI();
+		}
+
+		void InitializeCursor() {
+			cCon.InitializeCursorControls();
+		}
+
+		void InitializeNavGrid() {
+			navGrid.InitializeNavGrid();
 		}
 	//
 
@@ -277,7 +293,7 @@ public class WorldController : Singleton<WorldController> {
 			if (File.Exists (Application.persistentDataPath + "/" + WORLD_SAVE_NAME)) {
 				BinaryFormatter bf = new BinaryFormatter ();
 				FileStream file1 = File.Open (Application.persistentDataPath + "/" + WORLD_SAVE_NAME, FileMode.Open);
-				int[,] loadedWorld = (int[,])bf.Deserialize (file1);
+				string[,] loadedWorld = (string[,])bf.Deserialize (file1);
 				file1.Close ();
 
 				Debug.Log("Loading stats...");
@@ -287,7 +303,7 @@ public class WorldController : Singleton<WorldController> {
 			}
 		}
 
-		void LoadSavedWorld(int[,] loadedWorld) {
+		void LoadSavedWorld(string[,] loadedWorld) {
 			world_fg = loadedWorld;
 			RenderWorld();
 		}
@@ -300,15 +316,14 @@ public class WorldController : Singleton<WorldController> {
 			RenderWorld();
 		}
 
-		public int[,] GetWorld(int worldLayer = 0) {
+		public string[,] GetWorld(int worldLayer = 0) {
 			//NewWorld();
 			return worldLayer == 0 ? world_fg : world_bg;
 		}
 
-		public int GetTile(int x, int y, int worldLayer = 0, int chunk = 0) {
+		public string GetTile(int x, int y, int worldLayer = 0, int chunk = 0) {
 			if (x > world_fg.GetUpperBound(0) || y > world_fg.GetUpperBound(1) || x < 0 || y < 0) {
-				//Debug.Log(x + " " + y + " (" + chunk + ")");
-				return 0;
+				return "air";
 			}
 			return worldLayer == 0 ? world_fg[x, y] : world_bg[x, y];
 		}
@@ -387,17 +402,17 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="chunk"></param>
         /// <param name="worldLayer"></param>
         /// <returns></returns>
-		public int[,] GetChunkTiles(int chunk, int worldLayer = 0) {
+		public string[,] GetChunkTiles(int chunk, int worldLayer = 0) {
 			//NewWorld();
 			Vector2Int chunkPos = GetChunkPosition(chunk);
 
-			chunkTiles = new int[chunkSize, chunkSize];
+			chunkTiles = new string[chunkSize, chunkSize];
 
 			int adjustedX = chunkPos.x;
 			int adjustedY = chunkPos.y;
 			for (int y = 0; y < chunkSize; y++) {
 				for (int x = 0; x < chunkSize; x++) {
-					int newTile = worldLayer == 0 ? world_fg[adjustedX, adjustedY] : world_bg[adjustedX, adjustedY];
+					string newTile = worldLayer == 0 ? world_fg[adjustedX, adjustedY] : world_bg[adjustedX, adjustedY];
 					chunkTiles[x, y] = newTile;
 
 					adjustedX++;
@@ -499,7 +514,7 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="y"></param>
         /// <param name="newTile"></param>
         /// <returns></returns>
-		public void ModifyTile(int x, int y, int newTile, bool updateWorld = true) {
+		public void ModifyTile(int x, int y, string newTile, bool updateWorld = true) {
 			world_fg[x, y] = newTile;
 
 			if (!updateWorld)
@@ -515,11 +530,10 @@ public class WorldController : Singleton<WorldController> {
 			ltCon.HandleNewTile(x, y, newTile, world_bg[x, y]);
 
 			//Remove water from position if placing new block
-			if (newTile != 0)
+			if (newTile != "air")
 				lqCon.EmptyLiquidBlock(x, y);
 			
-			//Update colliders of tiles surrounding modified tile (updates other chunks' colliders if necessary)
-			//wCol.GenerateTileColliders(world_fg, x, y);
+			navGrid.UpdateNavNode(x, y, newTile == "air");
 		}
 
 		/// <summary>
@@ -528,16 +542,17 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-		public int RemoveTile(int x, int y) {
+		public string RemoveTile(int x, int y) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
-				return -1;
+				return "nulltile";
 			}
-			if (world_fg[x,y] == 0) {
-				return -1;
+			if (world_fg[x,y] == "air") {
+				return "nulltile";
 			}
 
-			int blockID = world_fg[x, y];
-			ModifyTile(x, y, 0);
+			string blockID = world_fg[x, y];
+			ModifyTile(x, y, "air");
+			Debug.Log("Removing " + blockID);
 			return blockID;
 		}
 
@@ -548,16 +563,16 @@ public class WorldController : Singleton<WorldController> {
         /// <param name="y"></param>
         /// <param name="newTile"></param>
         /// <returns></returns>
-		public int AddTile(int x, int y, int newTile) {
+		public string AddTile(int x, int y, string newTile) {
 			if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
-				return -1;
+				return "nulltile";
 			}
-			if (world_fg[x,y] != 0) {
-				return -1;
+			if (world_fg[x,y] != "air") {
+				return "nulltile";
 			}
 
 			ModifyTile(x, y, newTile);
-			return 1;
+			return "air";
 		}
 
 		/// <summary>
@@ -572,7 +587,7 @@ public class WorldController : Singleton<WorldController> {
 				Debug.Log("Out of map tile " + x + ", " + y);
 				return false;
 			}
-			bool tileExists = (worldLayer == 0 ? world_fg[x, y] != 0 : world_bg[x, y] != 0);
+			bool tileExists = (worldLayer == 0 ? world_fg[x, y] != "air" : world_bg[x, y] != "air");
 			return tileExists;
 		}
 
@@ -587,7 +602,7 @@ public class WorldController : Singleton<WorldController> {
 				//Debug.Log("Out of map tile " + x + ", " + y);
 				return false;
 			}
-			bool skyTile = world_fg[x, y] == 0 && world_bg[x, y] == 0;
+			bool skyTile = world_fg[x, y] == "air" && world_bg[x, y] == "air";
 			return skyTile;
 		}
 
@@ -601,7 +616,7 @@ public class WorldController : Singleton<WorldController> {
             if (x > world_fg.GetUpperBound(0) || x < world_fg.GetLowerBound(0) || y > world_fg.GetUpperBound(1) || y < world_fg.GetLowerBound(1)) {
                 return false;
             }
-            if (world_fg[x,y] == 0) {
+            if (world_fg[x,y] == "air") {
                 return false;
             }
 
@@ -611,7 +626,7 @@ public class WorldController : Singleton<WorldController> {
                         return true;
                     }       
 
-                    if (world_fg[i,j] == 0) {
+                    if (world_fg[i,j] == "air") {
                         return true;
                     }
                 }

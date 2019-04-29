@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8083e5b0d6ef18b45b3039aa454616f5, type: 3}
   m_Name: Torch
   m_EditorClassIdentifier: 
-  name: Torch
+  name: torch
   icon: {fileID: 21300000, guid: cd8135be056955542b2fe26a5474bbd1, type: 3}
   flavorText: Lights stuff up.
   colliderSize: 1
@@ -20,4 +20,5 @@ MonoBehaviour:
   consumeOnUse: 1
   lightStrength: 1
   lightColor: {r: 0.9245283, g: 0.6840376, b: 0, a: 1}
-  blockID: 2
+  blockID: torch
+  isMultiTile: 0

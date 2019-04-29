@@ -6,7 +6,7 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class TerrainGenerator : MonoBehaviour
 {
-    private WorldModifier wMod;
+    private TileController wMod;
 
     public Material terrainMat;
     private Texture2D terrainTex;
@@ -41,7 +41,7 @@ public class TerrainGenerator : MonoBehaviour
     public int stoneSimulationSteps = 1;
 
 	void Start () {
-        wMod = GetComponent<WorldModifier>();
+        wMod = GetComponent<TileController>();
         realPlainsHeight = (plainsHeight - (worldSize.y/2)) / (worldSize.y/2);
 	}
 
@@ -60,8 +60,8 @@ public class TerrainGenerator : MonoBehaviour
         terrainMat.SetTexture("_MainTex", terrainTex);
     }*/
 
-    public int[,] GenerateNewWorld() {
-        int[,] newWorld;
+    public string[,] GenerateNewWorld() {
+        string[,] newWorld;
 
         plainsPoints = 0;
         nonplainsPoints = 0;
@@ -106,14 +106,25 @@ public class TerrainGenerator : MonoBehaviour
 		return newArr;
 	}
 
-	public int[,] GetNewFractalWorld(int width, int height) {
-		int[,] newWorld = GenerateArray(width, height);
+    public static string[,] Get2DArrayCopy(string[,] arrayToCopy) {
+		string[,] newArr = new string[arrayToCopy.GetUpperBound(0)+1, arrayToCopy.GetUpperBound(1)+1];
+		for (int x = 0; x <= newArr.GetUpperBound(0); x++) {
+			for (int y = 0; y <= newArr.GetUpperBound(1); y++) {
+				newArr[x, y] = arrayToCopy[x, y];
+			}
+		}
+
+		return newArr;
+	}
+
+	public string[,] GetNewFractalWorld(int width, int height) {
+		string[,] newWorld = GenerateArray(width, height);
 		newWorld = FractalTerrain(newWorld, Time.time);
 		return newWorld;
 	}
 
-	public static int[,] GenerateArray(int width, int height, int defaultVal = 0) {
-		int[,] map = new int[width,height];
+	public static string[,] GenerateArray(int width, int height, string defaultVal = "air") {
+		string[,] map = new string[width,height];
 		for (int x = 0; x <= map.GetUpperBound(0); x++) {
 			for (int y = 0; y <= map.GetUpperBound(1); y++) {
                 map[x,y] = defaultVal;
@@ -122,7 +133,7 @@ public class TerrainGenerator : MonoBehaviour
 		return map;
 	}
 
-	public int[,] FractalTerrain(int[,] map, float seed) {
+	public string[,] FractalTerrain(string[,] map, float seed) {
 		float[] heightMap = Enumerable.Repeat(0f, map.GetUpperBound(0)+1).ToArray();
 		heightMap = InterpolateHeightMap(FractalRecurs(heightMap, 0, heightMap.Length-1, 1));
 		for (int x = 0; x < map.GetUpperBound(0)+1; x++) {
@@ -133,20 +144,20 @@ public class TerrainGenerator : MonoBehaviour
 					//if (UnityEngine.Random.Range(0, 540) < 1) {
 					//	map[x, y] = 3;
 					//} else {
-                        wMod.InitializeNewTile(x, y, 0);
-                        map[x, y] = 0;
+                        wMod.InitializeNewTile(x, y, "air");
+                        map[x, y] = "air";
 					//}
 				} else if (y == heightVal) {
 					//map[x, y] = 1;
-                    wMod.InitializeNewTile(x, y, 1);
-                    map[x, y] = 1;
+                    wMod.InitializeNewTile(x, y, "dirt");
+                    map[x, y] = "dirt";
 				} else {
 					if (UnityEngine.Random.Range(0, 400) < 1) {
-						wMod.InitializeNewTile(x, y, 3);
-                        map[x, y] = 3;
+						wMod.InitializeNewTile(x, y, "torch");
+                        map[x, y] = "torch";
 					} else {
-						wMod.InitializeNewTile(x, y, 1);
-                        map[x, y] = 1;
+						wMod.InitializeNewTile(x, y, "dirt");
+                        map[x, y] = "dirt";
 					}
 				}
 			}
@@ -237,11 +248,11 @@ public class TerrainGenerator : MonoBehaviour
         return noiseArr;
     }
 
-    public int[,] CullNoiseWithDepth(int[,] world, int[,] noiseArr, int depth) {
+    public int[,] CullNoiseWithDepth(string[,] world, int[,] noiseArr, int depth) {
         for (int x = 0; x < worldSize.x; x++) {
             int currentDepth = 0;
             for (int y = worldSize.y-1; y >= 0; y--) {
-                if (world[x, y] == 0) {
+                if (world[x, y] == "air") {
                     continue;
                 } else {
                     currentDepth++;
@@ -337,7 +348,7 @@ public class TerrainGenerator : MonoBehaviour
         return newStone;
     }
 
-    public int[,] GenerateCaves(int[,] world) {
+    public int[,] GenerateCaves(string[,] world) {
         int[,] caveArr = GenerateNoiseArray(worldSize.x, worldSize.y, caveStartAliveChance);
         caveArr = CullNoiseWithDepth(world, caveArr, caveDepth);
         for (int i = 0; i < caveSimulationSteps; i++) {
@@ -346,7 +357,7 @@ public class TerrainGenerator : MonoBehaviour
         return caveArr;
     }
 
-    public int[,] GenerateStone(int[,] world) {
+    public int[,] GenerateStone(string[,] world) {
         int[,] stoneArr = GenerateNoiseArray(worldSize.x, worldSize.y, stoneStartAliveChance);
         stoneArr = CullNoiseWithDepth(world, stoneArr, stoneDepth);
         for (int i = 0; i < stoneSimulationSteps; i++) {
@@ -355,14 +366,14 @@ public class TerrainGenerator : MonoBehaviour
         return stoneArr;
     }
 
-    public int[,] DigCaves(int[,] oldWorld) {
+    public string[,] DigCaves(string[,] oldWorld) {
         int[,] caves = GenerateCaves(oldWorld);
         for (int x = 0; x < worldSize.x; x++) {
             for (int y = worldSize.y - 1; y >= 0; y--) {
-                if (oldWorld[x, y] == 0) {
+                if (oldWorld[x, y] == "air") {
                     continue;
                 }
-                oldWorld[x, y] = caves[x, y] == 0 ? 0 : oldWorld[x, y];
+                oldWorld[x, y] = caves[x, y] == 0 ? "air" : oldWorld[x, y];
             }
         }
 
@@ -381,14 +392,14 @@ public class TerrainGenerator : MonoBehaviour
         }
     }
 
-    public void DistributeStone(int[,] world) {
+    public void DistributeStone(string[,] world) {
         int[,] stone = GenerateStone(world);
         for (int x = 0; x < worldSize.x; x++) {
             for (int y = 0; y < worldSize.y; y++) {
-                if (world[x, y] == 0) {
+                if (world[x, y] == "air") {
                     continue;
                 }
-                world[x, y] = stone[x, y] == 0 ? 2 : world[x, y];
+                world[x, y] = stone[x, y] == 0 ? "stone" : world[x, y];
             }
         }
     }

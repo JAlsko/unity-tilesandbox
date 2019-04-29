@@ -44,7 +44,7 @@ public class InventorySlotObject : MonoBehaviour
     public ItemObject InsertItemObject(ItemObject newItem, int amountToAdd = -1) {
         ItemObject leftoverItem = linkedInv.InsertItemObject(newItem, linkedSlot, amountToAdd);
         
-        UpdateItemIcon(GetContainedItem());
+        UpdateItemVisuals(GetContainedItem());
 
         DebugSlotItem();
 
@@ -65,7 +65,7 @@ public class InventorySlotObject : MonoBehaviour
         if (newSlotItem == null)
             HideItemIcon();
         else 
-            UpdateItemIcon(newSlotItem);
+            UpdateItemVisuals(newSlotItem);
 
         DebugSlotItem();
 
@@ -73,11 +73,11 @@ public class InventorySlotObject : MonoBehaviour
     }
 
     void RemoveItem() {
-        linkedInv.RemoveItem(linkedSlot);
+        linkedInv.RemoveSlotItem(linkedSlot);
         HideItemIcon();
     }
 
-    public void UpdateItemIcon(ItemObject newItem) {
+    public void UpdateItemVisuals(ItemObject newItem) {
         if (newItem == null) {
             HideItemIcon();
         } 
