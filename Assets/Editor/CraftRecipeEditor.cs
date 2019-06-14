@@ -52,9 +52,6 @@ public class CraftRecipeEditor : Editor {
 
         GUI.skin.label.fontSize = normalTextSize;
 
-        Texture minusButtonTexture = Resources.Load("Editor/minusButton") as Texture;
-        Texture plusButtonTexture = Resources.Load("Editor/plusButton") as Texture;
-
         //SerializedProperty ingredientsList = serializedObject.FindProperty("ingredientItems");
         int i = 0;
         for (; i < recipe.ingredientItems.Count; i++) {

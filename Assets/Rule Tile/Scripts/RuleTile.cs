@@ -32,7 +32,7 @@ namespace UnityEngine
 
         public Sprite m_DefaultSprite;
         public GameObject m_DefaultGameObject;
-        public Tile.ColliderType m_DefaultColliderType = Tile.ColliderType.Sprite;
+        public Tile.ColliderType m_DefaultColliderType = Tile.ColliderType.Grid;
         public TileBase m_Self
         {
             get { return m_OverrideSelf ? m_OverrideSelf : this; }
@@ -100,8 +100,8 @@ namespace UnityEngine
             //GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles);
 
             string[] neighboringTiles = null;
-            int thisChunk = (int)(tilemap.GetColor(Vector3Int.zero).a * 255);
-            int thisLayer = (int)(tilemap.GetColor(Vector3Int.zero).b * 255);
+            int thisChunk = Mathf.RoundToInt((tilemap.GetColor(Vector3Int.zero).a - 1f) * -1000f);
+            int thisLayer = Mathf.RoundToInt((tilemap.GetColor(Vector3Int.zero).b - 1f) * -1000f);
             GetMatchingNeighboringTiles(tilemap, position, ref neighboringTiles, thisLayer, thisChunk);
             var iden = Matrix4x4.identity;
 
@@ -145,7 +145,7 @@ namespace UnityEngine
             return Mathf.PerlinNoise((position.x + offset) * scale, (position.y + offset) * scale);
         }
 
-        public override bool GetTileAnimationData(Vector3Int position, ITilemap tilemap, ref TileAnimationData tileAnimationData)
+        /* public override bool GetTileAnimationData(Vector3Int position, ITilemap tilemap, ref TileAnimationData tileAnimationData)
         {
             TileBase[] neighboringTiles = null;
             var iden = Matrix4x4.identity;
@@ -164,7 +164,7 @@ namespace UnityEngine
                 }
             }
             return false;
-        }
+        } */
 
         public override void RefreshTile(Vector3Int location, ITilemap tileMap)
         {
@@ -387,12 +387,6 @@ namespace UnityEngine
                         Vector3Int tilePosition = new Vector3Int(position.x + x, position.y + y, position.z);
                         Vector2Int chunkPosition = WorldController.GetChunkPosition(thisChunk);
                         Vector3Int worldPosition = tilePosition + new Vector3Int(chunkPosition.x, chunkPosition.y, 0);
-                        //if (worldPosition.x > 127 || worldPosition.y > 127) {
-                        //    Debug.Log(x + " " + y + " (" + thisChunk + ")");
-                        //}
-                        /*if (tilePosition.x > 62) {
-                            Debug.Log(tilePosition.x + " " + tilePosition.y);
-                        }*/
                         m_CachedNeighboringTileIDs[index++] = WorldController.Instance.GetTile(worldPosition.x, worldPosition.y, thisLayer, thisChunk);
                     }
                 }

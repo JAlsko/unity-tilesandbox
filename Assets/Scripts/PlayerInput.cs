@@ -6,16 +6,8 @@ public class PlayerInput : Singleton<PlayerInput> {
 
 	public CharacterMover cMov;
 	public Camera mainCam;
-
-	Vector3 curMousePos;
-    public Transform tileSelectionBox;
 	
 	void Update () {
-		curMousePos = mainCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -mainCam.transform.position.z));
-        curMousePos = SimplifyMousePos(curMousePos);
-        Vector3 adjustedMousePos = AdjustMousePos(curMousePos, .5f);
-        tileSelectionBox.position = adjustedMousePos;
-
 		HandleMove();
 		HandleClick();
 		HandleUI();
@@ -40,11 +32,15 @@ public class PlayerInput : Singleton<PlayerInput> {
 
 	void HandleUI() {
 		if (Input.GetKeyDown(KeyCode.Escape)) {
-			UIController.Instance.ToggleInventory();
+			UIController.Instance.TogglePlayerInventory();
 		}
 
-		if (Input.GetKeyDown(KeyCode.I)) {
+		if (Input.GetKeyDown(KeyCode.C)) {
 			UIController.Instance.ToggleCrafting();
+		}
+
+		if (Input.GetKeyDown(KeyCode.E)) {
+			UIController.Instance.ToggleExternalInventory(0, 42);
 		}
 	}
 
@@ -58,9 +54,5 @@ public class PlayerInput : Singleton<PlayerInput> {
         mousePos.x += offset;
         mousePos.y += offset;
         return mousePos;
-    }
-
-    public Vector3 GetMousePos() {
-        return curMousePos;
     }
 }

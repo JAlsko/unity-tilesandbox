@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -6,18 +7,23 @@ using UnityEngine.Tilemaps;
 [System.Serializable]
 public class LiquidTileState {
     public TileBase stateTile;
-    public float liquidLevel = 0;
+    public float minLiquidLevel = 0;
+    public float maxLiquidLevel = 0;
 }
 
 [RequireComponent(typeof(WorldController))]
 [RequireComponent(typeof(ChunkObjectsHolder))]
-public class LiquidController : MonoBehaviour
+public class LiquidController : Singleton<LiquidController>
 {
+    public const float liquidGravity = 0.25f;
+
     public float maxMass = 1f;
     public float maxCompression = 0.02f;
     public float minMass = 0.01f;
     public float minFlow = 0.2f;
     public float maxSpeed = 1f;
+
+    public float minRenderMass = 0.1f;
 
     public float calculationsPerSecond = 1;
     public int calculationIterations = 1;
@@ -40,6 +46,9 @@ public class LiquidController : MonoBehaviour
     float[,] liquidMass;
     float[,] updatedLiquidMass;
 
+    Dictionary<int, float[,]> chunkLiquidMasses = new Dictionary<int, float[,]>();
+    Dictionary<int, float[,]> updatedChunkLiquidMasses = new Dictionary<int, float[,]>();
+
     //float[,] sourceMass, destinationMass;
 
     WorldController wCon;
@@ -60,7 +69,10 @@ public class LiquidController : MonoBehaviour
     public int methodCalls = 0;
 
     bool[,] dirtyTiles;
-    List<int> chunksToRender = new List<int>();
+    Dictionary<int, bool[,]> chunkDirtyTiles = new Dictionary<int, bool[,]>();
+    public List<int> chunksToRender = new List<int>();
+    public List<int> chunksToUpdate = new List<int>();
+    public List<int> chunksStartingUpdate = new List<int>();
 
     public List<LiquidTileState> liquidStates;
 
@@ -70,6 +82,62 @@ public class LiquidController : MonoBehaviour
         cObjs = GetComponent<ChunkObjectsHolder>();
         calculationRate = 1f/calculationsPerSecond;
         renderRate = 1f/rendersPerSecond;
+    }
+
+    public static int SetChunkVal<T> (Dictionary<int, T[,]> chunkDict, int x, int y, T newVal) {
+        int chunk = WorldController.GetChunk(x, y);
+
+        if (chunk < 0 || chunk > WorldController.GetChunkCount()) {
+            return 0;
+        }
+
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+        chunkDict[chunk][x - chunkPos.x, y - chunkPos.y] = newVal;
+
+        return 1;
+    }
+
+    public static int SetChunkVal<T> (Dictionary<int, T[,]> chunkDict, int chunk, int x, int y, T newVal) {
+        if (chunk < 0 || chunk > WorldController.GetChunkCount()) {
+            return 0;
+        }
+
+        chunkDict[chunk][x, y] = newVal;
+
+        return 1;
+    }
+
+    public static T GetChunkVal<T> (Dictionary<int, T[,]> chunkDict, int x, int y) {
+        int chunk = WorldController.GetChunk(x, y);
+
+        if (chunk < 0 || chunk > WorldController.GetChunkCount()) {
+            Debug.LogError("Trying to get chunk value at x: " + x + ", y:" + y + ". Chunk does not exist!");
+            return default(T);
+        }
+
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+
+        try
+        {
+            return chunkDict[chunk][x - chunkPos.x, y - chunkPos.y];
+        }
+        catch (System.IndexOutOfRangeException e)  // CS0168
+        {
+            Debug.Log("Chunk error at chunk " + chunk);
+            Debug.Log("Indexing at x: " + (x) + ", y:" + (y));
+            Debug.Log("Chunk position at " + chunkPos);
+            // Set IndexOutOfRangeException to the new exception's InnerException.
+            throw new System.ArgumentOutOfRangeException("index parameter is out of range.", e);
+        }
+    }
+
+    public static T GetChunkVal<T> (Dictionary<int, T[,]> chunkDict, int chunk, int x, int y) {
+        if (chunk < 0 || chunk > WorldController.GetChunkCount()) {
+            Debug.LogError("Trying to get chunk value at x: " + x + ", y:" + y + ". Chunk does not exist!");
+            return default(T);
+        }
+
+        return chunkDict[chunk][x, y];
     }
 
     private static int CompareLiquidStates(LiquidTileState x, LiquidTileState y) {
@@ -82,9 +150,9 @@ public class LiquidController : MonoBehaviour
             return 1;
         }
 
-        if (x.liquidLevel == y.liquidLevel) {
+        if (x.minLiquidLevel == y.minLiquidLevel) {
             return 0;
-        } else if (x.liquidLevel > y.liquidLevel) {
+        } else if (x.minLiquidLevel > y.minLiquidLevel) {
             return 1;
         } else {
             return -1;
@@ -111,6 +179,14 @@ public class LiquidController : MonoBehaviour
     public void InitializeLiquids() {
         world_fg = wCon.GetWorld(0);
 
+        int totalChunks = WorldController.GetChunkCount();
+        int chunkSize = WorldController.chunkSize;
+        for (int chunk = 0; chunk < totalChunks; chunk++) {
+            chunkLiquidMasses[chunk] = new float[chunkSize, chunkSize];
+            updatedChunkLiquidMasses[chunk] = new float[chunkSize, chunkSize];
+            chunkDirtyTiles[chunk] = new bool[chunkSize, chunkSize];
+        }
+
         SortLiquidTileStates();
 
         liquidMass = new float[WorldController.GetWorldWidth()+2, WorldController.GetWorldHeight()+2];
@@ -134,9 +210,9 @@ public class LiquidController : MonoBehaviour
     }
 
     void Update() {
-        if (Input.GetKey(KeyCode.Space)) {
-            SpawnWaterBlock();
-        }
+        //if (Input.GetKey(KeyCode.Space)) {
+        //    SpawnLiquidBlock(spawnPoint.x, spawnPoint.y);
+        //}
     }
 
     void FixedUpdate() {
@@ -163,30 +239,37 @@ public class LiquidController : MonoBehaviour
 
         if (elapsedTime - lastTextureTime > renderRate) {
             lastTextureTime = elapsedTime;
-            /*Color32[] newPixels = generatePixelArray(liquidMass);
-            liquidTex.SetPixels32(newPixels);
-            liquidTex.Apply();*/
+            //Color32[] newPixels = generatePixelArray(liquidMass);
+            //liquidTex.SetPixels32(newPixels);
+            //liquidTex.Apply();
             RenderShownChunkLiquids();
         }
         
     }
 
-    public void SpawnLiquidBlock(int x, int y) {
-        liquidMass[x, y] = maxMass;
-        dirtyTiles[x, y] = true;
+    public void SpawnLiquidBlock(int x, int y, float amount = 1) {
+        //liquidMass[x, y] = maxMass;
+        SetLiquidMass(x, y, amount);
+        //dirtyTiles[x, y] = true;
+        SetChunkVal(chunkDirtyTiles, x, y, true);
+
+        int chunk = WorldController.GetChunk(x, y);
+        //StartChunkLiquidSimulation(chunk);
+    }
+
+    public void SpawnLiquidBlock(float amount = 1) {
+        Vector3 mousePos = CursorController.Instance.GetMousePos();
+        SpawnLiquidBlock((int)mousePos.x, (int)mousePos.y, amount);
     }
 
     public void EmptyLiquidBlock(int x, int y) {
-        liquidMass[x, y] = 0;
-        //updatedLiquidMass[x, y] = 0;
-        dirtyTiles[x, y] = true;
-    }
+        //liquidMass[x, y] = 0;
+        SetLiquidMass(x, y, 0f);
+        //dirtyTiles[x, y] = true;
+        SetChunkVal(chunkDirtyTiles, x, y, true);
 
-    [ContextMenu("SpawnWaterBlock")]
-    public void SpawnWaterBlock() {
-        dirtyTiles[spawnPoint.x, spawnPoint.y] = true;
-        liquidMass[spawnPoint.x, spawnPoint.y] = maxMass;
-        updatedLiquidMass[spawnPoint.x, spawnPoint.y] = maxMass;
+        int chunk = WorldController.GetChunk(x, y);
+        //StartChunkLiquidSimulation(chunk);
     }
 
     Color32[] generatePixelArray(float[,] liquids) {
@@ -212,16 +295,31 @@ public class LiquidController : MonoBehaviour
 
     TileBase GetLiquidTile(float liquidLevel, float aboveLiquidLevel) {
         foreach (LiquidTileState lts in liquidStates) {
-            if (aboveLiquidLevel > minMass) {
+            if (aboveLiquidLevel > minRenderMass) {
                 return liquidStates[liquidStates.Count-1].stateTile;
             }
-            if (liquidLevel <= lts.liquidLevel) {
+            if (liquidLevel <= lts.maxLiquidLevel && liquidLevel >= lts.minLiquidLevel) {
                 return lts.stateTile;
             }
         }
 
         Debug.Log("Couldn't find appropriate liquid tile for liquid level " + liquidLevel + "!");
         return null;
+    }
+
+    TileBase GetLiquidTile(float liquidLevel, float aboveLiquidLevel, TileBase prevTile) {
+        if (aboveLiquidLevel > minRenderMass) {
+            return GetLiquidTile(liquidLevel, aboveLiquidLevel);
+        }
+
+        for (int i = 0; i < liquidStates.Count; i++) {
+            LiquidTileState lqs = liquidStates[i];
+            if (liquidLevel >= lqs.minLiquidLevel && liquidLevel <= lqs.maxLiquidLevel && lqs.stateTile == prevTile) {
+                return prevTile;
+            }
+        }
+
+        return GetLiquidTile(liquidLevel, aboveLiquidLevel);
     }
 
     void RenderShownChunkLiquids() {
@@ -239,42 +337,67 @@ public class LiquidController : MonoBehaviour
 
         for (int x = chunkPos.x; x < chunkPos.x+WorldController.chunkSize; x++) {
             for (int y = chunkPos.y; y < chunkPos.y+WorldController.chunkSize; y++) {
-                if (dirtyTiles[x, y] == false)
+                if (GetChunkVal(chunkDirtyTiles, x, y) == false)
                     continue;
                 
+                float liquidLevel = GetChunkVal(chunkLiquidMasses, x, y);
+                float aboveLiquidLevel = GetChunkVal(chunkLiquidMasses, x, y+1);
+
+                Vector3Int tilePos = new Vector3Int(x-chunkPos.x, y-chunkPos.y, 0);
+
                 if (y == worldHeight) {
-                    liquidTilemap.SetTile(new Vector3Int(x-chunkPos.x, y-chunkPos.y, 0), GetLiquidTile(liquidMass[x, y], 0));
+                    liquidTilemap.SetTile(tilePos, GetLiquidTile(liquidLevel, 0, liquidTilemap.GetTile(tilePos)));
                 } else {
-                    liquidTilemap.SetTile(new Vector3Int(x-chunkPos.x, y-chunkPos.y, 0), GetLiquidTile(liquidMass[x, y], liquidMass[x, y+1]));
+                    liquidTilemap.SetTile(tilePos, GetLiquidTile(liquidLevel, aboveLiquidLevel, liquidTilemap.GetTile(tilePos)));
                 }
-                dirtyTiles[x, y] = false;
+                if (aboveLiquidLevel <= 0) {
+                    SetChunkVal(chunkDirtyTiles, x, y, false);
+                }
             }
         }
     }
 
     void LiquidSimulation(int numIterations = 1) {
         simulating = true;
-        int worldWidth = WorldController.GetWorldWidth();
-        int worldHeight = WorldController.GetWorldHeight();
+        /* int worldWidth = WorldController.GetWorldWidth();
+        int worldHeight = WorldController.GetWorldHeight(); */
 
-        LiquidSimulationStep(liquidMass, updatedLiquidMass, worldWidth, worldHeight);
+        for (int i = 0; i < chunksToUpdate.Count; i++) {
+            int chunk = chunksToUpdate[i];
 
-        if (numIterations % 2 != 0) {
+            bool newlySimulatedChunk = chunksStartingUpdate.Contains(chunk);
+
+            ChunkLiquidSimulationStep(chunkLiquidMasses, updatedChunkLiquidMasses, chunk, newlySimulatedChunk);
+            if (newlySimulatedChunk) {
+                chunksStartingUpdate.Remove(chunk);
+            }
+        }
+
+        for (int i = 0; i < chunksToUpdate.Count; i++) {
+            int chunk = chunksToUpdate[i];
+            for (int x = 0; x < WorldController.chunkSize; x++) {
+                for (int y = 0; y < WorldController.chunkSize; y++) {
+                    SetChunkVal(chunkLiquidMasses, chunk, x, y, GetChunkVal(updatedChunkLiquidMasses, chunk, x, y));
+                }
+            }
+        }
+
+        /* if (numIterations % 2 != 0) {
             for (int x = 0; x < worldWidth; x++) {
                 for (int y = 0; y < worldHeight; y++) {
                     liquidMass[x, y] = updatedLiquidMass[x, y];
                 }
             }
-        }
+        } */
 
-        for (int x = 0; x < worldWidth+2; x++) {
+        /* for (int x = 0; x < worldWidth+2; x++) {
             liquidMass[x, 0] = 0;
             liquidMass[x, worldHeight + 1] = 0;
         }
         for (int y = 0; y < worldHeight+1; y++) {
             liquidMass[0, y] = 0;
             liquidMass[worldWidth+1, y] = 0;
-        }
+        } */
         simulating = false;
     }
 
@@ -327,17 +450,19 @@ public class LiquidController : MonoBehaviour
                     }
 
                     if (world_fg[x-1, y] == "air") {
-                        flow = (sourceMass[x, y] - sourceMass[x-1, y])/4;
+                        flow = GetStableStateB(remainingMass + sourceMass[x-1, y]) - sourceMass[x-1, y];
                         if (flow > minFlow) {
-                            flow *= 0.5f;
+                            flow *= 0.25f;
                         }
-                        flow = Mathf.Clamp(flow, 0, remainingMass);
+                        flow = Mathf.Clamp(flow, 0, Mathf.Min(maxSpeed, remainingMass));
                         
                         destinationMass[x, y] -= flow;
                         destinationMass[x-1, y] += flow;
                         remainingMass -= flow;
 
                         clampCalls++;
+                        minCalls++;
+                        methodCalls++;
 
                         dirtyTiles[x, y] = true;
                         dirtyTiles[x-1, y] = true;
@@ -348,17 +473,19 @@ public class LiquidController : MonoBehaviour
                     }
 
                     if (world_fg[x+1, y] == "air") {
-                        flow = (sourceMass[x, y] - sourceMass[x+1, y])/4;
+                        flow = GetStableStateB(remainingMass + sourceMass[x+1, y]) - sourceMass[x+1, y];
                         if (flow > minFlow) {
-                            flow *= 0.5f;
+                            flow *= 0.25f;
                         }
-                        flow = Mathf.Clamp(flow, 0, remainingMass);
+                        flow = Mathf.Clamp(flow, 0, Mathf.Min(maxSpeed, remainingMass));
                         
                         destinationMass[x, y] -= flow;
                         destinationMass[x+1, y] += flow;
                         remainingMass -= flow;
 
                         clampCalls++;
+                        minCalls++;
+                        methodCalls++;
 
                         dirtyTiles[x, y] = true;
                         dirtyTiles[x+1, y] = true;
@@ -371,7 +498,7 @@ public class LiquidController : MonoBehaviour
                     if (world_fg[x, y+1] == "air") {
                         flow = remainingMass - GetStableStateB(remainingMass + sourceMass[x, y+1]);
                         if (flow > minFlow) {
-                            flow *= 0.5f;
+                            flow *= 0.25f;
                         }
                         flow = Mathf.Clamp(flow, 0, Mathf.Min(maxSpeed, remainingMass));
                         
@@ -389,6 +516,183 @@ public class LiquidController : MonoBehaviour
                 }
             }
         //}
+    }
+
+    float GetLiquidMass(Dictionary<int, float[,]> sourceMass, int x, int y) {
+        return GetChunkVal(sourceMass, x, y);
+    }
+
+    public int SetLiquidMass(int x, int y, float newVal) {
+        //SetLiquidMass(updatedChunkLiquidMasses, newVal, x, y);
+        return SetLiquidMass(chunkLiquidMasses, newVal, x, y);
+    }
+
+    int SetLiquidMass(Dictionary<int, float[,]> destinationMass, float newVal, int x, int y) {
+        int chunk = WorldController.GetChunk(x, y);
+        StartChunkLiquidSimulation(chunk);
+        SetDirtyTiles(x, y, true);
+        return SetChunkVal(destinationMass, x, y, newVal);
+    }
+
+    int IncrementLiquidMass(Dictionary<int, float[,]> destinationMass, float incVal, int x, int y) {
+        float curVal = GetChunkVal(destinationMass, x, y);
+        int chunk = WorldController.GetChunk(x, y);
+        StartChunkLiquidSimulation(chunk);
+        SetDirtyTiles(x, y, true);
+        return SetChunkVal(destinationMass, x, y, curVal + incVal);
+    }
+
+    int SetDirtyTiles(int x, int y, bool newVal) {
+        return SetChunkVal(chunkDirtyTiles, x, y, newVal);
+    }
+
+    public void EndChunkLiquidSimulation(int chunk) {
+        if (chunksToUpdate.Contains(chunk)) {
+            //Debug.Log("Ending chunk sim on chunk " + chunk);
+            chunksToUpdate.Remove(chunk);
+        }
+    }
+
+    public void StartChunkLiquidSimulation(int chunk) {
+        if (!chunksToUpdate.Contains(chunk)) {
+            //Debug.Log("Starting chunk sim on chunk " + chunk);
+            chunksToUpdate.Add(chunk);
+            chunksStartingUpdate.Add(chunk);
+        }
+    }
+
+    void ChunkLiquidSimulationStep(Dictionary<int, float[,]> srcChunkLiquidMasses, Dictionary<int, float[,]> dstChunkLiquidMasses, int chunk, bool startStep = false) {
+        float flow = 0;
+        float remainingMass;
+
+        //int worldWidth = WorldController.GetWorldWidth();
+        //int worldHeight = WorldController.GetWorldHeight();
+
+        //for (int curIteration = 0; curIteration < numIterations; curIteration++) {
+            //sourceMass = liquidMass;//curIteration % 2 == 0 ? liquidMass : updatedLiquidMass;
+            //destinationMass = updatedLiquidMass;//curIteration % 2 == 0 ? updatedLiquidMass : liquidMass;
+
+        Vector2Int chunkPos = WorldController.GetChunkPosition(chunk);
+
+        float totalFlow = 0;
+
+        for (int x = chunkPos.x; x < chunkPos.x + WorldController.chunkSize; x++) {
+            for (int y = chunkPos.y; y < chunkPos.y + WorldController.chunkSize; y++) {
+                totalIterations++;
+
+                if (WorldController.Instance.GetTile(x, y) != "air" || x <= 0 || x >= WorldController.GetWorldWidth() || y <= 0 || y >= WorldController.GetWorldHeight()) {
+                    continue;
+                }
+
+                flow = 0;
+                remainingMass = GetChunkVal(srcChunkLiquidMasses, x, y);//sourceMass[x, y];
+                if (remainingMass <= 0) {
+                    continue;
+                }
+
+                if (WorldController.Instance.GetTile(x, y-1)/*world_fg[x, y-1]*/ == "air") {
+                    flow = GetStableStateB(remainingMass + GetChunkVal(srcChunkLiquidMasses, x, y-1)) - GetChunkVal(srcChunkLiquidMasses, x, y-1);
+                    if (flow > minFlow) {
+                        flow *= 0.5f;
+                    }
+                    flow = Mathf.Clamp(flow, 0, Mathf.Min(maxSpeed, remainingMass));
+                    totalFlow += flow;
+                    
+                    IncrementLiquidMass(dstChunkLiquidMasses, -flow, x, y);//destinationMass[x, y] -= flow;
+                    IncrementLiquidMass(dstChunkLiquidMasses, flow, x, y-1);//destinationMass[x, y-1] += flow;
+                    remainingMass -= flow;
+
+                    clampCalls++;
+                    minCalls++;
+                    methodCalls++;
+
+                    SetDirtyTiles(x, y, true);//dirtyTiles[x, y] = true;
+                    SetDirtyTiles(x, y-1, true);//dirtyTiles[x, y-1] = true;
+                }
+
+                if (remainingMass <= 0) {
+                    continue;
+                }
+
+                if (WorldController.Instance.GetTile(x-1, y)/*world_fg[x-1, y]*/ == "air") {
+                    //flow = GetStableStateB(remainingMass + GetChunkVal(srcChunkLiquidMasses, x-1, y))/2 - GetChunkVal(srcChunkLiquidMasses, x-1, y);
+                    flow = (GetChunkVal(srcChunkLiquidMasses, x, y) - GetChunkVal(srcChunkLiquidMasses, x-1, y))/4;
+                    if (flow > minFlow) {
+                        flow *= 0.5f;
+                    }
+                    flow = Mathf.Clamp(flow, 0, remainingMass);//Mathf.Min(maxSpeed, remainingMass));
+                    totalFlow += flow;
+                    
+                    IncrementLiquidMass(dstChunkLiquidMasses, -flow, x, y);//destinationMass[x, y] -= flow;
+                    IncrementLiquidMass(dstChunkLiquidMasses, flow, x-1, y);//destinationMass[x-1, y] += flow;
+                    remainingMass -= flow;
+
+                    clampCalls++;
+                    minCalls++;
+                    methodCalls++;
+
+                    SetDirtyTiles(x, y, true);//dirtyTiles[x, y] = true;
+                    SetDirtyTiles(x-1, y, true);//dirtyTiles[x-1, y] = true;
+                }
+
+                if (remainingMass <= 0) {
+                    continue;
+                }
+
+                if (WorldController.Instance.GetTile(x+1, y)/* world_fg[x+1, y] */ == "air") {
+                    //flow = GetStableStateB(remainingMass + GetChunkVal(srcChunkLiquidMasses, x+1, y))/2 - GetChunkVal(srcChunkLiquidMasses, x+1, y);
+                    flow = (GetChunkVal(srcChunkLiquidMasses, x, y) - GetChunkVal(srcChunkLiquidMasses, x+1, y))/4;
+                    if (flow > minFlow) {
+                        flow *= 0.5f;
+                    }
+                    flow = Mathf.Clamp(flow, 0, remainingMass);//Mathf.Min(maxSpeed, remainingMass));
+                    totalFlow += flow;
+                    
+                    IncrementLiquidMass(dstChunkLiquidMasses, -flow, x, y);//destinationMass[x, y] -= flow;
+                    IncrementLiquidMass(dstChunkLiquidMasses, flow, x+1, y);//destinationMass[x+1, y] += flow;
+                    remainingMass -= flow;
+
+                    clampCalls++;
+                    minCalls++;
+                    methodCalls++;
+
+                    SetDirtyTiles(x, y, true);//dirtyTiles[x, y] = true;
+                    SetDirtyTiles(x+1, y, true);//dirtyTiles[x+1, y] = true;
+                }
+
+                if (remainingMass <= 0) {
+                    continue;
+                }
+
+                if (WorldController.Instance.GetTile(x, y+1)/* world_fg[x, y+1] */ == "air") {
+                    flow = remainingMass - GetStableStateB(remainingMass + GetChunkVal(srcChunkLiquidMasses, x, y+1));
+                    if (flow > minFlow) {
+                        flow *= 0.25f;
+                    }
+                    flow = Mathf.Clamp(flow, 0, Mathf.Min(maxSpeed, remainingMass));
+                    totalFlow += flow;
+                    
+                    IncrementLiquidMass(dstChunkLiquidMasses, -flow, x, y);//destinationMass[x, y] -= flow;
+                    IncrementLiquidMass(dstChunkLiquidMasses, flow, x, y+1);//destinationMass[x, y+1] += flow;
+                    remainingMass -= flow;
+
+                    clampCalls++;
+                    minCalls++;
+                    methodCalls++;
+
+                    SetDirtyTiles(x, y, true);//dirtyTiles[x, y] = true;
+                    SetDirtyTiles(x, y+1, true);//dirtyTiles[x, y+1] = true;
+                }
+
+            }
+        }
+
+        //Debug.Log("Chunk " + chunk + " flow: " + totalFlow);
+
+        if (totalFlow < .001f && !startStep) {
+            EndChunkLiquidSimulation(chunk);
+        }
+
     }
 
     float GetStableStateB(float totalMass) {

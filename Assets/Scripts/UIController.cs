@@ -2,15 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 public class UIController : Singleton<UIController>
 {
     public PlayerInventory playerInv;
     public GameObject itemUIPrefab;
-    public Transform inventoryUIParent;
+    public Transform playerInventoryUIParent;
+    public Transform externalInventoryListUIParent;
+    public Transform externalInventoryUIParent;
+    public Text externalInventoryUIName;
     public Transform hotbarUIParent;
-    public InventorySlotObject[] invSlotObjs;
+    public InventorySlotObject[] playerInvSlotObjs;
+    public InventorySlotObject[] externalInvSlotObjs;
+
+    [Header("Maximum Displayable Inventory Size")]
+    public int maxExternalInvSize = 64;
+    private int cachedExternalInventoryID = -1;
 
     public Transform craftUIParent;
     public GameObject recipeUIPrefab;
@@ -18,47 +27,161 @@ public class UIController : Singleton<UIController>
     public Dictionary<CraftRecipe.CraftingType, List<GameObject>> recipesByType = new Dictionary<CraftRecipe.CraftingType, List<GameObject>>();
 
     public CraftingOutput recipeOutput;
-    public TextMeshProUGUI recipeOutputName;
+    public Text recipeOutputName;
     public Image recipeOutputIcon;
-    public TextMeshProUGUI recipeOutputFlavorText;
+    public Text recipeOutputFlavorText;
     public GameObject recipeOutputButton;
 
     public Sprite emptySprite;
+
+    public bool moveUIContinuing = false;
+    public GameObject moveUI;
+    public Vector3 moveUIOffset;
 
     void Start()
     {
         //InitializeInventoryItemUI();
         //InitializeRecipeUI();
+        ToggleCrafting();
+        TogglePlayerInventory();
+        ToggleExternalInventory(-1);
     }
 
-    public void InitializeInventoryItemUI()
+    public GraphicRaycaster canvasRaycaster;
+    public PointerEventData pointerEventData;
+    public EventSystem eventSystem;
+    
+    GameObject CheckHoveredObject(string tag) {
+        pointerEventData = new PointerEventData(eventSystem);
+        pointerEventData.position = Input.mousePosition;
+
+        List<RaycastResult> raycastResults = new List<RaycastResult>();
+        canvasRaycaster.Raycast(pointerEventData, raycastResults);
+
+        foreach (RaycastResult result in raycastResults) {
+            if (result.gameObject.tag == tag) {
+                return result.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    public bool HoveringOverUI() {
+        pointerEventData = new PointerEventData(eventSystem);
+        pointerEventData.position = Input.mousePosition;
+
+        List<RaycastResult> raycastResults = new List<RaycastResult>();
+        canvasRaycaster.Raycast(pointerEventData, raycastResults);
+
+        return raycastResults.Count > 0;
+    }
+
+    void Update() {
+        if (Input.GetKey(KeyCode.Mouse0)) {
+            GameObject hoveredObject = CheckHoveredObject("UIHandle");
+            if (hoveredObject) {
+                if (hoveredObject.GetComponent<MoveableUI>()) {
+                    if (!moveUIContinuing) {
+                        moveUIContinuing = true;
+                        GameObject mainUIObject = hoveredObject.GetComponent<MoveableUI>().mainUIObject;
+                        moveUI = mainUIObject;
+                        moveUIOffset = mainUIObject.transform.position - Input.mousePosition;
+                    }
+                }
+            }
+        }
+
+        if (moveUIContinuing) {
+            moveUI.transform.position = (Input.mousePosition + moveUIOffset);
+        }
+
+        if (Input.GetKeyUp(KeyCode.Mouse0)) {
+            moveUIContinuing = false;
+            moveUI = null;
+        }
+    }
+
+    public void InitializePlayerInventoryUI()
     {
-        invSlotObjs = new InventorySlotObject[playerInv.backpackSize + playerInv.hotbarSize];
+        playerInvSlotObjs = new InventorySlotObject[playerInv.backpackSize + playerInv.hotbarSize];
         for (int i = 0; i < playerInv.backpackSize + playerInv.hotbarSize; i++) {
             GameObject newItemUI;
             if (i < playerInv.hotbarSize) {
                 newItemUI = Instantiate(itemUIPrefab, hotbarUIParent);
             } else {
-                newItemUI = Instantiate(itemUIPrefab, inventoryUIParent);
+                newItemUI = Instantiate(itemUIPrefab, playerInventoryUIParent);
             }
-            invSlotObjs[i] = newItemUI.GetComponentInChildren<InventorySlotObject>();
-            invSlotObjs[i].UnhighlightSlot();
+            playerInvSlotObjs[i] = newItemUI.GetComponentInChildren<InventorySlotObject>();
+            playerInvSlotObjs[i].UnhighlightSlot();
         }
 
         HighlightInvSlot(0);
-        playerInv.LinkUI(this, invSlotObjs);
+        playerInv.LinkUI(this, playerInvSlotObjs);
+    }
+
+    public void InitializeExternalInventoryUI() {
+        externalInvSlotObjs = new InventorySlotObject[maxExternalInvSize];
+
+        for (int i = 0; i < maxExternalInvSize; i++) {
+            GameObject newItemUI;
+            newItemUI = Instantiate(itemUIPrefab, externalInventoryListUIParent);
+            externalInvSlotObjs[i] = newItemUI.GetComponentInChildren<InventorySlotObject>();
+            externalInvSlotObjs[i].UnhighlightSlot();
+        }
+    }
+
+    public void OpenExternalInventoryUI(int invID) {
+        if (invID != cachedExternalInventoryID) {
+            cachedExternalInventoryID = invID;
+            for (int i = 0; i < maxExternalInvSize; i++) {
+                externalInvSlotObjs[i].gameObject.SetActive(false);
+                externalInvSlotObjs[i].UnlinkInventory();
+            }
+
+            Inventory openedInventory = InventoryManager.Instance.GetInventory(invID);
+
+            if (openedInventory == null) {
+                Debug.Log("Opened inventory is null!");
+                externalInventoryUIParent.gameObject.SetActive(false);
+                return;
+            }
+
+            for (int i = 0; i < openedInventory.inventorySize; i++) {
+                externalInvSlotObjs[i].gameObject.SetActive(true);
+                externalInvSlotObjs[i].LinkInventory(openedInventory, i);
+            }
+
+            externalInventoryUIName.text = openedInventory.inventoryName.ToUpper();
+        }
+
+        externalInventoryUIParent.gameObject.SetActive(true);
+    }
+
+    public void CloseExternalInventoryUI() {
+        externalInventoryUIParent.gameObject.SetActive(false);
     }
 
     public void HighlightInvSlot(int index) {
-        invSlotObjs[index].HighlightSlot();
+        playerInvSlotObjs[index].HighlightSlot();
     }
 
     public void UnhighlightInvSlot(int index) {
-        invSlotObjs[index].UnhighlightSlot();
+        playerInvSlotObjs[index].UnhighlightSlot();
     }
 
-    public void ToggleInventory() {
-        inventoryUIParent.gameObject.SetActive(!inventoryUIParent.gameObject.activeInHierarchy);
+    public void TogglePlayerInventory() {
+        playerInventoryUIParent.gameObject.SetActive(!playerInventoryUIParent.gameObject.activeInHierarchy);
+    }
+
+    public void ToggleExternalInventory(int toggleOp = 0, int invID = -1) {
+        bool open = toggleOp != 0 ? (toggleOp == 1 ? true : false) : !externalInventoryUIParent.gameObject.activeInHierarchy;
+        
+        if (open) {
+            OpenExternalInventoryUI(invID);
+        } else if (!open) {
+            CloseExternalInventoryUI();
+        }
     }
 
     public void ToggleCrafting() {

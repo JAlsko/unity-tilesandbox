@@ -9,6 +9,7 @@ public class DigTool : Item {
     public float digAmount = 3.5f;
     public int digToolTier = 0;
     public float fireRate = .5f;
+    public bool fullAuto = true;
 
     override public string Use() {
         return TileController.Instance.DigTile(this.digAmount);

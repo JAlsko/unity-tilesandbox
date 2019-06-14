@@ -20,9 +20,12 @@ using System;
 [RequireComponent(typeof(UIController))]
 [RequireComponent(typeof(CursorController))]
 [RequireComponent(typeof(NavGrid))]
+[RequireComponent(typeof(EntityManager))]
+[RequireComponent(typeof(InventoryManager))]
 public class WorldController : Singleton<WorldController> {
 
 	static string WORLD_SAVE_NAME = "worldSave.dat";
+	static string WORLDBG_SAVE_NAME = "worldBGSave.dat";
 
 	//Primary tile arrays
 	public string[,] world_fg;
@@ -41,8 +44,11 @@ public class WorldController : Singleton<WorldController> {
 	UIController uic;
 	CursorController cCon;
 	NavGrid navGrid;
+	EntityManager eMgr;
+	InventoryManager invMgr;
 
 	public Transform player;
+	public PlayerInventory pInv;
 
 	//Dimensions for world generation (statics set on Start())
 	[SerializeField] private int worldWidth = 0;
@@ -58,7 +64,7 @@ public class WorldController : Singleton<WorldController> {
 
 	//Lists to track which chunks are currently showing/hidden
 	private List<int> hiddenChunks;
-	private List<int> showingChunks;
+	public List<int> showingChunks;
 
 	//Temporary array to populate for functions that require array of tiles in a chunk
 	private string[,] chunkTiles;
@@ -77,6 +83,8 @@ public class WorldController : Singleton<WorldController> {
 	//World initialization flag
 	bool worldInitialized = false;
 
+	bool started = false;
+
 	void Start () {
 		tGen = GetComponent<TerrainGenerator>();
 		wRend = GetComponent<TileRenderer>();
@@ -90,6 +98,8 @@ public class WorldController : Singleton<WorldController> {
 		uic = GetComponent<UIController>();
 		cCon = GetComponent<CursorController>();
 		navGrid = GetComponent<NavGrid>();
+		eMgr = GetComponent<EntityManager>();
+		invMgr = GetComponent<InventoryManager>();
 
 		//Checks to make sure world generation size matches with chunk size
 		if (worldWidth % chunkSize != 0 || worldHeight % chunkSize != 0) {
@@ -113,6 +123,13 @@ public class WorldController : Singleton<WorldController> {
 
 		StartupWorld();
 	}
+
+	void Update() {
+		if (!started && Input.GetKeyDown(KeyCode.Space)) {
+			//DoStart();
+			started = true;
+		}
+	}
 	
 	void FixedUpdate () {
 		if (!worldInitialized) {
@@ -133,20 +150,24 @@ public class WorldController : Singleton<WorldController> {
 			//world_fg = new int[s_worldWidth, s_worldHeight];
 			//world_bg = new int[s_worldWidth, s_worldHeight];
 			
-			InitializeTiles();
 			InitializeTileStructure();
-			if (newWorld == null) {
+			InitializeTiles();
+			/*if (newWorld == null) {
 				NewWorld();
 			} else {
 				world_fg = newWorld;
 				world_bg = newWorldBG;
-			}
+			}*/
+			LoadWorld();
+			SaveWorld();
 			InitializeChunks();
 			PlacePlayer();
 			InitializeLiquids();
 			InitializeItems();
 			InitializeMultiTiles();
+			InitializeInventories();
 			InitializeUI();
+			InitializeEntities();
 			InitializeCursor();
 			RenderWorld();
 			GenerateLightMap();
@@ -167,7 +188,7 @@ public class WorldController : Singleton<WorldController> {
 				
 				world_fg = tGen.GenerateNewWorld();
 				world_bg = TerrainGenerator.Get2DArrayCopy(world_fg);
-				//world_fg = tGen.DigCaves(world_fg);
+				world_fg = tGen.DigCaves(world_fg);
 			//}
 		}
 
@@ -253,7 +274,7 @@ public class WorldController : Singleton<WorldController> {
         /// </summary>
         /// <returns></returns>
 		void InitializeMultiTiles() {
-			TileController.Instance.InitializeAllMultiTiles();
+			//TileController.Instance.InitializeAllMultiTiles();
 		}
 
 		/// <summary>
@@ -263,15 +284,26 @@ public class WorldController : Singleton<WorldController> {
 		void InitializeUI() {
 			//uic.InitializeInventoryItemUI();
 			uic.InitializeRecipeUI();
-			uic.InitializeInventoryItemUI();
+			uic.InitializeExternalInventoryUI();
+			uic.InitializePlayerInventoryUI();
 		}
 
 		void InitializeCursor() {
 			cCon.InitializeCursorControls();
 		}
 
+		void InitializeInventories() {
+			invMgr.InitializeInventories();
+			pInv.InitializePlayerInventory();
+		}
+
 		void InitializeNavGrid() {
 			navGrid.InitializeNavGrid();
+		}
+
+		void InitializeEntities() {
+			eMgr.InitializeEntityAttributes();
+			eMgr.InitializeExistingEntities();
 		}
 	//
 
@@ -286,26 +318,43 @@ public class WorldController : Singleton<WorldController> {
 
 			bf.Serialize (file1, world_fg);
 			file1.Close ();
+
+			FileStream file2 = File.Open (Application.persistentDataPath + "/" + WORLDBG_SAVE_NAME, FileMode.OpenOrCreate);
+
+			bf.Serialize (file2, world_bg);
+			file2.Close ();
 		}
 
 		[ContextMenu("Load World")]
 		public void LoadWorld() {
+			Debug.Log(Application.persistentDataPath);
 			if (File.Exists (Application.persistentDataPath + "/" + WORLD_SAVE_NAME)) {
 				BinaryFormatter bf = new BinaryFormatter ();
 				FileStream file1 = File.Open (Application.persistentDataPath + "/" + WORLD_SAVE_NAME, FileMode.Open);
 				string[,] loadedWorld = (string[,])bf.Deserialize (file1);
 				file1.Close ();
 
+				FileStream file2 = File.Open (Application.persistentDataPath + "/" + WORLDBG_SAVE_NAME, FileMode.Open);
+				string[,] loadedWorldBG = (string[,])bf.Deserialize (file2);
+				file2.Close ();
+
 				Debug.Log("Loading stats...");
-				LoadSavedWorld(loadedWorld);
+				LoadSavedWorld(loadedWorld, loadedWorldBG);
 			} else {
 				Debug.Log("No stats file found.");
+				NewWorld();
 			}
 		}
 
-		void LoadSavedWorld(string[,] loadedWorld) {
+		void LoadSavedWorld(string[,] loadedWorld, string[,] loadedWorldBG) {
+			for (int x = 0; x <= loadedWorld.GetUpperBound(0); x++) {
+				for (int y = 0; y <= loadedWorld.GetUpperBound(1); y++) {
+					TileController.Instance.InitializeNewTile(x, y, loadedWorld[x, y]);
+				}
+			}
 			world_fg = loadedWorld;
-			RenderWorld();
+			world_bg = loadedWorldBG;
+			//RenderWorld();
 		}
 
 		[ContextMenu("Delete World")]
@@ -331,6 +380,10 @@ public class WorldController : Singleton<WorldController> {
 
 	//Chunk Handling
 	//-------------------------------------------------------------------------------
+		public static Vector2Int GetWorldSize() {
+			return new Vector2Int(s_worldWidth, s_worldHeight);
+		}
+
 		public static int GetWorldWidth() {
 			return s_worldWidth;
 		}
@@ -349,6 +402,14 @@ public class WorldController : Singleton<WorldController> {
 
 		public static int GetChunkCount() {
 			return worldChunkWidth * worldChunkHeight;
+		}
+
+		public static bool InWorldBounds(int x, int y) {
+			if (x < 0 || x >= s_worldWidth || y < 0 || y >= s_worldHeight) {
+				return false;
+			} else {
+				return true;
+			}
 		}
 
 		/// <summary>
@@ -380,6 +441,10 @@ public class WorldController : Singleton<WorldController> {
         /// <returns></returns>
 		public static int GetChunk(int x, int y) {
 			int chunk = 0;
+
+			if (x < 0 || x > s_worldWidth || y < 0 || y > s_worldHeight) {
+				return -1;
+			}
 
 			int adjustedX = (int)(x/chunkSize);
 			int adjustedY = (int)(y/chunkSize);
@@ -494,7 +559,7 @@ public class WorldController : Singleton<WorldController> {
 			//Debug.Log("Chunks to show: " + ArrToString(chunksToShow));
 
 			cObjs.UpdateShownChunks(chunksToShow, chunksToHide);
-			lqCon.SetChunksToRender(chunksShowing);
+			lqCon.SetChunksToRender(oldChunksToShow);
 
 			showingChunks = Helpers.GetListFromArr(oldChunksToShow);
 		}
@@ -521,6 +586,8 @@ public class WorldController : Singleton<WorldController> {
 				return;
 
 			int chunkToModify = GetChunk(x, y);
+
+			lqCon.StartChunkLiquidSimulation(chunkToModify);
 
 			//Re-render tile's chunk
 			//wRend.RenderChunkTiles(chunkToModify);
@@ -552,7 +619,6 @@ public class WorldController : Singleton<WorldController> {
 
 			string blockID = world_fg[x, y];
 			ModifyTile(x, y, "air");
-			Debug.Log("Removing " + blockID);
 			return blockID;
 		}
 

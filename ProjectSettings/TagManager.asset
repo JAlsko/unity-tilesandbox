@@ -8,6 +8,8 @@ TagManager:
   - DroppedItem
   - ChunkDetection
   - CraftingOutput
+  - UIHandle
+  - Liquid
   layers:
   - Default
   - TransparentFX

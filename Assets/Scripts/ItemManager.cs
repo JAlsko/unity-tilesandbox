@@ -26,6 +26,9 @@ public class ItemManager : Singleton<ItemManager>
 
     public List<CraftRecipe> allRecipes = new List<CraftRecipe>();
 
+    public LayerMask droppedItemLayerMask;
+    static LayerMask s_droppedItemLayerMask;
+
     void Start() {
         //InitializeAllItems();
     }
@@ -81,6 +84,7 @@ public class ItemManager : Singleton<ItemManager>
         
         s_defaultDroppedItemPrefab = defaultDroppedItemPrefab;
         s_droppedItemPooler = droppedItemPooler;
+        s_droppedItemLayerMask = droppedItemLayerMask;
 
         GetChunkObjects();
         s_chunkParents = chunkParents;
@@ -118,13 +122,30 @@ public class ItemManager : Singleton<ItemManager>
 
     public static void SpawnDroppedItem(ItemObject itemObj, float x, float y, Vector2 spawnForce) {
         //GameObject newDroppedItem = Instantiate(s_defaultDroppedItemPrefab, new Vector3(x+.5f, y+.5f, 0), Quaternion.identity, s_droppedItemParent) as GameObject;
+        Vector3 spawnPos = new Vector3(x+.5f, y+.5f, 0);
+        int leftOverStack = itemObj.currentStack;
+
+        RaycastHit2D[] allHitInfo = Physics2D.CircleCastAll(spawnPos, 2f, Vector2.up, 0.1f, s_droppedItemLayerMask);
+        for (int i = 0; i < allHitInfo.Length; i++) {
+            RaycastHit2D hitInfo = allHitInfo[i];
+            if (hitInfo.collider != null) {
+                DroppedItem otherDroppedItem = hitInfo.collider.GetComponentInChildren<DroppedItem>();
+                if (otherDroppedItem.GetDroppedItem().name == itemObj.name) {
+                    leftOverStack = otherDroppedItem.CombineDroppedItems(leftOverStack);
+                }
+                if (leftOverStack <= 0) {
+                    return;
+                }
+            }
+        }
+
         GameObject newDroppedItem = s_droppedItemPooler.GetPooledObject();
         if (!newDroppedItem.GetComponentInChildren<DroppedItem>()) {
             Debug.LogError("New Dropped Item Object has no Dropped Item script!");
             return;
         }
         newDroppedItem.transform.parent = s_chunkParents[WorldController.GetChunk((int)x, (int)y)];
-        newDroppedItem.transform.position = new Vector3(x+.5f, y+.5f, 0);
+        newDroppedItem.transform.position = spawnPos;
         DroppedItem di = newDroppedItem.GetComponentInChildren<DroppedItem>();
         di.InitializeItem(itemObj);
         di.AddForceToItem(spawnForce);

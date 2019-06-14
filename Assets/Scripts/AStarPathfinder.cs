@@ -2,21 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AStarPathfinder : MonoBehaviour
+public class AStarPathfinder : Singleton<AStarPathfinder>
 {
     NavGrid grid;
-
-    public Transform seeker, target;
 
     void Start() {
         grid = GetComponent<NavGrid>();
     }
 
-    void Update() {
-        FindPath(seeker.position, target.position);
-    }
-
-    void FindPath(Vector3 startPos, Vector3 targetPos) {
+    public List<NavNode> FindPath(Vector3 startPos, Vector3 targetPos) {
         NavNode startNode = grid.NavNodeFromWorldPoint(startPos);
         NavNode targetNode = grid.NavNodeFromWorldPoint(targetPos);
 
@@ -36,8 +30,7 @@ public class AStarPathfinder : MonoBehaviour
             closedSet.Add(currentNode);
 
             if (currentNode == targetNode) {
-                RetracePath(startNode, targetNode);
-                return;
+                return RetracePath(startNode, targetNode);
             }
 
             foreach (NavNode neighbor in grid.GetNeighbors(currentNode)) {
@@ -56,9 +49,12 @@ public class AStarPathfinder : MonoBehaviour
                 }
             }
         }
+
+        Debug.Log("Couldn't find good A* path!");
+        return null;
     }
 
-    void RetracePath(NavNode startNode, NavNode endNode) {
+    List<NavNode> RetracePath(NavNode startNode, NavNode endNode) {
         List<NavNode> path = new List<NavNode>();
         NavNode currentNode = endNode;
 
@@ -70,6 +66,8 @@ public class AStarPathfinder : MonoBehaviour
         path.Reverse();
 
         grid.path = path;
+
+        return path;
     }
 
     int GetDistance(NavNode nodeA, NavNode nodeB) {

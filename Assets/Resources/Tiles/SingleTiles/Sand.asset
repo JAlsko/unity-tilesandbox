@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08377f1c8d96c746abf49b8730f9c9c, type: 3}
+  m_Name: Sand
+  m_EditorClassIdentifier: 
+  name: sand
+  tileBase: {fileID: 11400000, guid: 843ab6f584158774bbde5d829857e924, type: 2}
+  lightStrength: 0
+  lightColor: {r: 1, g: 1, b: 1, a: 1}
+  maxTileHealth: 1
+  digToolTier: 0
+  dropItem: {fileID: 11400000, guid: 28f74911fc2af24459a9605a30b02ae7, type: 2}
+  requiresSupport: 0
+  takesAnySupport: 0
+  needsTopSupport: 0
+  needsLeftSupport: 0
+  needsRightSupport: 0
+  needsBottomSupport: 0
+  needsBackSupport: 0
+  givesTopSupport: 1
+  givesLeftSupport: 1
+  givesRightSupport: 1
+  givesBottomSupport: 1

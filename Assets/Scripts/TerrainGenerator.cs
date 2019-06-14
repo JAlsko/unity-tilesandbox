@@ -11,7 +11,7 @@ public class TerrainGenerator : MonoBehaviour
     public Material terrainMat;
     private Texture2D terrainTex;
 
-    public Vector2Int worldSize;
+    Vector2Int worldSize;
 
     public List<Color> tileColors = new List<Color>();
 
@@ -42,7 +42,6 @@ public class TerrainGenerator : MonoBehaviour
 
 	void Start () {
         wMod = GetComponent<TileController>();
-        realPlainsHeight = (plainsHeight - (worldSize.y/2)) / (worldSize.y/2);
 	}
 
     void Update() {
@@ -63,6 +62,9 @@ public class TerrainGenerator : MonoBehaviour
     public string[,] GenerateNewWorld() {
         string[,] newWorld;
 
+        worldSize = WorldController.GetWorldSize();
+        realPlainsHeight = (plainsHeight - (worldSize.y/2)) / (worldSize.y/2);
+
         plainsPoints = 0;
         nonplainsPoints = 0;
 
@@ -73,9 +75,9 @@ public class TerrainGenerator : MonoBehaviour
 
         //PlantGrass();
 
-        /*if (caveStartAliveChance > 0)
-            DigCaves(world);
-        */
+        //if (caveStartAliveChance > 0)
+        //    DigCaves(newWorld);
+        
         return newWorld;
     }
 
@@ -152,13 +154,16 @@ public class TerrainGenerator : MonoBehaviour
                     wMod.InitializeNewTile(x, y, "dirt");
                     map[x, y] = "dirt";
 				} else {
-					if (UnityEngine.Random.Range(0, 400) < 1) {
+                    wMod.InitializeNewTile(x, y, "dirt");
+                    map[x, y] = "dirt";
+
+					/*if (UnityEngine.Random.Range(0, 400) < 1) {
 						wMod.InitializeNewTile(x, y, "torch");
                         map[x, y] = "torch";
 					} else {
 						wMod.InitializeNewTile(x, y, "dirt");
                         map[x, y] = "dirt";
-					}
+					}*/
 				}
 			}
 		}

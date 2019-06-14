@@ -94,6 +94,16 @@ public class DroppedItem : MonoBehaviour
             itemLight.DisableLight();
     }
 
+    public int CombineDroppedItems(int count) {
+        int maxStack = ItemManager.GetItem(thisItem.name).maxStackSize;
+        maxStack -= thisItem.currentStack;
+        int leftOverStack = Mathf.Max(0, count - maxStack);
+        int countToTake = count - leftOverStack;
+        thisItem.currentStack += countToTake;
+
+        return leftOverStack;
+    }
+
     public void EnableCollision() {
         triggerCol.enabled = true;
     }

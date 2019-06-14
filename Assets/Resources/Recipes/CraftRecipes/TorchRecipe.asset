@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ingredientItems:
   - {fileID: 11400000, guid: 068e2f1f0343c2f4a803f8236678399a, type: 2}
-  ingredientCounts: 02000000
+  ingredientCounts: 04000000
   outputItem: {fileID: 11400000, guid: 26f9771ad5b276243beeaa32a72f95f5, type: 2}
-  outputCount: 1
+  outputCount: 4
   craftingType: 0
   craftingTier: 0
   initialized: 1

@@ -7,13 +7,13 @@ using TMPro;
 public class InventorySlotObject : MonoBehaviour
 {
     public Image itemIcon;
-    public TextMeshProUGUI itemCount;
+    public Text itemCount;
 
     public Sprite defaultSprite;
 
     public Image highlightPanel;
 
-    private PlayerInventory linkedInv;
+    private Inventory linkedInv;
     private int linkedSlot;
 
     void Start()
@@ -32,9 +32,18 @@ public class InventorySlotObject : MonoBehaviour
         //Debug.Log("Item: " + ItemManager.GetItem(containedItem.id).name + " - Count: " + containedItem.currentStack);
     }
 
-    public void InitializeInventory(PlayerInventory pInv, int thisSlot) {
-        linkedInv = pInv;
+    public void LinkInventory(Inventory inv, int thisSlot) {
+        linkedInv = inv;
         linkedSlot = thisSlot;
+
+        UpdateItemVisuals(linkedInv.inventory[linkedSlot]);
+    }
+
+    public void UnlinkInventory() {
+        linkedInv = null;
+        linkedSlot = -1;
+
+        HideItemIcon();
     }
 
     public ItemObject GetContainedItem() {

@@ -17,6 +17,7 @@ public class ChunkObjectsHolder : MonoBehaviour
 	MeshRenderer[] chunkLightmaps;
 	MeshRenderer[] chunkSkylightmaps;
 	MeshRenderer[] chunkBGLightmaps;
+	MeshRenderer[] chunkBGSkylightmaps;
     Tilemap[] chunkLiquidTilemaps;
 
     public void InitializeChunkObjects() {
@@ -30,6 +31,7 @@ public class ChunkObjectsHolder : MonoBehaviour
         chunkLightmaps = new MeshRenderer[worldChunkCount];
         chunkSkylightmaps = new MeshRenderer[worldChunkCount];
         chunkBGLightmaps = new MeshRenderer[worldChunkCount];
+        chunkBGSkylightmaps = new MeshRenderer[worldChunkCount];
         chunkLiquidTilemaps = new Tilemap[worldChunkCount];
 
         //Initializing chunk object array
@@ -68,6 +70,11 @@ public class ChunkObjectsHolder : MonoBehaviour
             chunkBGLightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkBGLightmapObj.localPosition.z);
             chunkBGLightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
             chunkBGLightmaps[chunk] = chunkBGLightmapObj.GetComponent<MeshRenderer>();
+
+            Transform chunkBGSkylightmapObj = newChunkObj.transform.Find("BGSkylightMap");
+            chunkBGSkylightmapObj.localPosition = new Vector3(chunkSize/2, chunkSize/2, chunkSkylightmapObj.localPosition.z);
+            chunkBGSkylightmapObj.localScale = new Vector3(chunkSize, chunkSize, 1);
+            chunkBGSkylightmaps[chunk] = chunkBGSkylightmapObj.GetComponent<MeshRenderer>();
 
             Tilemap chunkLiquidTilemap = newChunkObj.transform.Find("LiquidTilemap").GetComponentInChildren<Tilemap>();
             chunkLiquidTilemaps[chunk] = chunkLiquidTilemap;

@@ -111,13 +111,13 @@ TextureImporter:
         width: 10
         height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 835aaf86a8cf70d41b330a96d8a4dffb
+      spriteID: 169c83b243839b241aa830fef8f7931d
       vertices: []
       indices: 
       edges: []
@@ -126,18 +126,18 @@ TextureImporter:
       name: torch_tileset_1
       rect:
         serializedVersion: 2
-        x: 10
-        y: 30
+        x: 0
+        y: 20
         width: 10
         height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7711e5a664a0af34c8b4d751cab200ec
+      spriteID: 132157ac4ceff4b4ab7b4eb709a27c6b
       vertices: []
       indices: 
       edges: []
@@ -147,17 +147,17 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 20
+        y: 10
         width: 10
         height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: aeaca5089e4c6a243bd281937bf93ec9
+      spriteID: 1d4a985a35b12dd43921ecb5472c31b0
       vertices: []
       indices: 
       edges: []
@@ -166,98 +166,18 @@ TextureImporter:
       name: torch_tileset_3
       rect:
         serializedVersion: 2
-        x: 10
-        y: 20
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: f79316a662daa61448b30d361e4374b1
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: torch_tileset_4
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 10
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: d37992a0065a5814c84df864450410a9
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: torch_tileset_5
-      rect:
-        serializedVersion: 2
-        x: 10
-        y: 10
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 64a2ff512e839c8478eae068ff2f130f
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: torch_tileset_6
-      rect:
-        serializedVersion: 2
         x: 0
         y: 0
         width: 10
         height: 10
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: de7456c341ba3e5488cc6a8920876322
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: torch_tileset_7
-      rect:
-        serializedVersion: 2
-        x: 10
-        y: 0
-        width: 10
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: d29d7eb0dab353547bb93976201b1fc1
+      spriteID: 23acb0de01d74304197934a53f1aaaaf
       vertices: []
       indices: 
       edges: []

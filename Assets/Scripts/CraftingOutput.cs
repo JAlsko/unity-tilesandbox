@@ -7,7 +7,7 @@ using TMPro;
 public class CraftingOutput : MonoBehaviour
 {
     public Image itemIcon;
-    public TextMeshProUGUI itemCount;
+    public Text itemCount;
 
     public GameObject blocker;
 

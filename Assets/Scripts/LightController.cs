@@ -96,6 +96,7 @@ public class LightController : Singleton<LightController>
         LightSource oldLightSource = light.GetLightSource();
         RemoveLight(oldLightSource);
         light.RemoveLightSource();
+
         LightSource newLightSource = light.GetNewLightSource();
         UpdateLight(newLightSource);
 
@@ -110,6 +111,7 @@ public class LightController : Singleton<LightController>
     public void RemoveDynamicLight(DynamicLightSource light) {
         LightSource oldLightSource = light.GetLightSource();
         RemoveLight(oldLightSource);
+        light.RemoveLightSource();
 
         ApplyChunkTextureLightUpdates();
     }
@@ -367,25 +369,25 @@ public class LightController : Singleton<LightController>
                 if (wCon.isSky(x + 1, y)) {
                     if (!GetLightSource(tilePosition + Vector3Int.right)) {
                         int chunk = WorldController.GetChunk(x+1, y);
-                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength, true, true);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, Color.white, skyStrength, true, true);
                     }
                 }
                 if (wCon.isSky(x - 1, y)) {
                     if (!GetLightSource(tilePosition + Vector3Int.left)) {
                         int chunk = WorldController.GetChunk(x-1, y);
-                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength, true, true);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, Color.white, skyStrength, true, true);
                     }
                 }
                 if (wCon.isSky(x, y + 1)) {
                     if (!GetLightSource(tilePosition + Vector3Int.up)) {
                         int chunk = WorldController.GetChunk(x, y+1);
-                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength, true, true);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, Color.white, skyStrength, true, true);
                     }
                 }
                 if (wCon.isSky(x, y - 1)) {
                     if (!GetLightSource(tilePosition + Vector3Int.down)) {
                         int chunk = WorldController.GetChunk(x, y-1);
-                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength, true, true);
+                        LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, Color.white, skyStrength, true, true);
                     }
                 }
             }
@@ -415,7 +417,7 @@ public class LightController : Singleton<LightController>
                 //Previous tile was non-sky light source
                 if (GetLightSource(new Vector3Int(x, y, 0))) {
                     LightSource lightSource = GetLightSource(new Vector3Int(x, y, 0));
-                    if (lightSource != null && lightSource.lightColor != skyColor)
+                    if (lightSource != null)
                     {
                         RemoveLight(lightSource);
                         lightSource.gameObject.SetActive(false);
@@ -440,6 +442,24 @@ public class LightController : Singleton<LightController>
 
                         //Refresh light values by creating a light source here and removing it
                         LightSource source = CreateLightSource(new Vector3Int(x, y, 0), currentColor, 1f);
+                        source.gameObject.SetActive(false);
+                        Destroy(source.gameObject);
+                    }
+
+                    Color currentSkyColor = ambientLightValues[x, y];
+                    if (currentSkyColor != Color.black && currentSkyColor != Color.clear)
+                    {
+                        //Since new block is background only, update its light to reflect the new falloff
+                        float colorIncrement = blockFalloff - bgFalloff;
+                        currentSkyColor = new Color(
+                            Mathf.Clamp(currentSkyColor.r + colorIncrement, 0f, 1f),
+                            Mathf.Clamp(currentSkyColor.g + colorIncrement, 0f, 1f),
+                            Mathf.Clamp(currentSkyColor.b + colorIncrement, 0f, 1f));
+
+                        QueueChunkAmbientLightTextureUpdate(x, y, currentSkyColor);
+
+                        //Refresh light values by creating a light source here and removing it
+                        LightSource source = CreateLightSource(new Vector3Int(x, y, 0), currentSkyColor, 1f, true, true);
                         source.gameObject.SetActive(false);
                         Destroy(source.gameObject);
                     }
@@ -503,44 +523,52 @@ public class LightController : Singleton<LightController>
             if (wCon.isSky(x + 1, y)) {
                 if (!GetLightSource(tilePosition + Vector3Int.right)) {
                     int chunk = WorldController.GetChunk(x+1, y);
-                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, skyColor, skyStrength, true, true);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.right, Color.white, skyStrength, true, true);
                 }
             }
             if (wCon.isSky(x - 1, y)) {
                 if (!GetLightSource(tilePosition + Vector3Int.left)) {
                     int chunk = WorldController.GetChunk(x-1, y);
-                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, skyColor, skyStrength, true, true);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.left, Color.white, skyStrength, true, true);
                 }
             }
             if (wCon.isSky(x, y + 1)) {
                 if (!GetLightSource(tilePosition + Vector3Int.up)) {
                     int chunk = WorldController.GetChunk(x, y+1);
-                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, skyColor, skyStrength, true, true);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.up, Color.white, skyStrength, true, true);
                 }
             }
             if (wCon.isSky(x, y - 1)) {
                 if (!GetLightSource(tilePosition + Vector3Int.down)) {
                     int chunk = WorldController.GetChunk(x, y-1);
-                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, skyColor, skyStrength, true, true);
+                    LightSource newSkylight = CreateLightSource(tilePosition + Vector3Int.down, Color.white, skyStrength, true, true);
                 }
             }
 
             //Remove any light sources previously at this location
             LightSource existingLight = GetLightSource(new Vector3Int(x, y, 0));
-            if (existingLight == null)
+            if (existingLight == null) {
                 existingLight = CreateLightSource(new Vector3Int(x, y, 0), activeLightValues[x, y], 1f, false);
+            }
 
+            LightSource existingSkyLight = GetLightSource(new Vector3Int(x, y, 0), true);
+            if (existingSkyLight == null) {
+                existingSkyLight = CreateLightSource(new Vector3Int(x, y, 0), ambientLightValues[x, y], 1f, false, true);
+            }
             bool wasSkyTile = skyTiles[x, y] == 1;
 
-            if (wasSkyTile) {
-                int chunk = WorldController.GetChunk(x, y);
-                RemoveLight(existingLight, true);
-            } else {
+            //if (wasSkyTile) {
+                //int chunk = WorldController.GetChunk(x, y);
+                RemoveLight(existingSkyLight, true);
+            //} else {
                 RemoveLight(existingLight);
-            }
+            //}
 
             existingLight.gameObject.SetActive(false);
             Destroy(existingLight.gameObject);
+
+            existingSkyLight.gameObject.SetActive(false);
+            Destroy(existingSkyLight.gameObject);
 
             skyTiles[x, y] = 0;
         }
@@ -908,7 +936,7 @@ public class LightController : Singleton<LightController>
         float lightVal, lightValLeft, lightValUp, lightValRight, lightValDown;
 
         int positionHash = Helpers.HashableInt(light.position.x, light.position.y);
-        LightSource lightSource = GetLightSource(light.position);
+        LightSource lightSource = GetLightSource(light.position, isAmbient);
         if (lightSource != null && !postRemovalUpdates.Contains(lightSource)) {
             postRemovalUpdates.Add(lightSource);
         }

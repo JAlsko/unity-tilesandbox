@@ -242,8 +242,9 @@ public class TileRenderer : Singleton<TileRenderer> {
 					fgTilemap.SetTile(tilePos, fgTile);
 					bgTilemap.SetTile(tilePos, bgTile);
 					if (x == 0 && y == 0) {
-						fgTilemap.SetColor(tilePos, new Color(1, 1, 0/255f, chunk/255f));
-						bgTilemap.SetColor(tilePos, new Color(1, 1, 1f/255f, chunk/255f));
+						fgTilemap.SetColor(tilePos, new Color(1f, 1f, 1f - 0f, 1f - (chunk/1000f)));
+						//Debug.Log("Chunk " + chunk + " = color " + Mathf.RoundToInt((fgTilemap.GetColor(tilePos).a - 1f) * -1000f));
+						bgTilemap.SetColor(tilePos, new Color(1f, 1f, 1f - (1f/1000f), 1f - (chunk/1000f)));
 					}
 				}
 			}

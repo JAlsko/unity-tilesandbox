@@ -1,9 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text.RegularExpressions;
 
-public class Helpers : MonoBehaviour
+public static class Helpers
 {
     public static string PrintV3Arr(Vector3[] arr) {
         string str = "";
@@ -109,4 +110,19 @@ public class Helpers : MonoBehaviour
 
         return adjustedName;
     }
+
+    public static void Invoke<T>(this MonoBehaviour me, Action<T> theDelegate, T param, float time) {
+        me.StartCoroutine(ExecuteAfterTime(theDelegate, param, time));
+    }
+ 
+    private static IEnumerator ExecuteAfterTime<T>(Action<T> theDelegate, T param, float delay) {
+        yield return new WaitForSeconds(delay);
+        theDelegate(param);
+    }
+	
+	public static void InvokeLimited<T>(this MonoBehaviour me, Action<T> func, T param, float time, int steps) {
+		me.StartCoroutine(ExecuteAfterTime(func, param, time));
+		if (steps > 0)
+			InvokeLimited(me, func, param, time, steps-1);
+	}
 }

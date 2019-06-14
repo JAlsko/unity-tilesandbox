@@ -16,8 +16,4 @@ public class PlayerHandler : Singleton<PlayerHandler>
     {
         
     }
-
-    public Vector2 GetMainPlayerMousePos() {
-        return pInput.GetMousePos();
-    }
 }

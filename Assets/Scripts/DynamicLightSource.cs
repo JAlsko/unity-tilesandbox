@@ -17,6 +17,9 @@ public class DynamicLightSource : MonoBehaviour
 
     public void EnableLight()
     {
+        if (lightSource != null) {
+            return;
+        }
         curPos = GetSimplifiedPosition();
         curLightStrength = startLightStrength;
         GetNewLightSource();
@@ -62,14 +65,16 @@ public class DynamicLightSource : MonoBehaviour
     }
 
     public void RemoveLightSource() {
-        if (lightSource != null)
+        if (lightSource != null) {
+            lightSource.gameObject.SetActive(false);
             Destroy(lightSource.gameObject);
+        }
         lightSource = null;
     }
 
     public void DisableLight() {
         LightController.Instance.RemoveDynamicLight(this);
-        RemoveLightSource();
+        //RemoveLightSource();
         this.enabled = false;
     }
 }

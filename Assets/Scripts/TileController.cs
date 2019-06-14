@@ -108,9 +108,9 @@ public class MultiTileObject {
 
         spriteSections = new List<Sprite>();
 
-        string assetPath = AssetDatabase.GetAssetPath(mTile.tileSprite);
-        Object[] loadedAssets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-        foreach (Object asset in loadedAssets) {
+        //string assetPath = AssetDatabase.GetAssetPath(mTile.tileSprite);
+        //Object[] loadedAssets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+        /* foreach (Object asset in loadedAssets) {
             //Debug.Log("Trying to load " + asset.name);
             var spriteCast = asset as Sprite;
 
@@ -123,7 +123,7 @@ public class MultiTileObject {
                 continue;
             }
             //Debug.Log("Successfully loaded " + spriteSections[spriteSections.Count-1].name);
-        }
+        } */
 
         tileBlock = new Tile[tileWidth, tileHeight];
 
@@ -233,6 +233,9 @@ public class TileController : Singleton<TileController>
     }
 
     public string DigTile(int x, int y, float digAmount) {
+        if (!WorldController.InWorldBounds(x, y)) {
+            return "nulltile";
+        }
         float newHealth = tileHealth[x, y] - digAmount;
         if (newHealth <= 0) {
             tileHealth[x, y] = 0;
@@ -459,7 +462,7 @@ public class TileController : Singleton<TileController>
 
                 supportGivers[x, y].UpdateSupportGiver(newTileInfo.supportGiver);
                 supportPoints[x, y].UpdateSupportPoint(newTileInfo.supportPoint);
-                supportGivers[x, y].supportedSides[0] = newTileInfo.supportGiver.supportedSides[0];
+                //supportGivers[x, y].supportedSides[0] = newTileInfo.supportGiver.supportedSides[0];
                 tileHealth[x, y] = newTileInfo.maxTileHealth;
                 maxTileHealth[x, y] = newTileInfo.maxTileHealth;
                 return addTileResult;
@@ -550,7 +553,6 @@ public class TileController : Singleton<TileController>
             supportPoints[x, y] = new SupportPoint(nullSupportPoint);
         }
 
-        Debug.Log(removedBlockID);
         if (IsMultiTile(removedBlockID)) {
             RemoveMultiTile(x, y);
             removedBlockID = GetMultiTileName(removedBlockID);
@@ -731,13 +733,23 @@ public class TileController : Singleton<TileController>
     }
 
     public string PlaceTile(string newTile, bool isMultiTile = false) {
-        Vector2 mousePos = PlayerInput.Instance.GetMousePos();
+        Vector2 mousePos = CursorController.Instance.GetMousePos();
         return PlaceTile((int)mousePos.x, (int)mousePos.y, newTile, isMultiTile);
     }
 
     public string DigTile(float digAmount) {
-        Vector2 mousePos = PlayerInput.Instance.GetMousePos();
-        return DigTile((int)mousePos.x, (int)mousePos.y, digAmount);
+        Vector2 mousePos = CursorController.Instance.GetTileSelectionPos();
+        int tileSelectionDiameter = CursorController.Instance.tileSelectionDiameter;
+        float tileSelectionRadius = ((float)(tileSelectionDiameter)/2f);
+        Vector2 digStartPos = new Vector2(mousePos.x - tileSelectionRadius, mousePos.y - tileSelectionRadius);
+        
+        for (int x = 0; x < tileSelectionDiameter; x++) {
+            for (int y = 0; y < tileSelectionDiameter; y++) {
+                DigTile((int)digStartPos.x + x, (int)digStartPos.y + y, digAmount);
+            }
+        }
+        
+        return "nulltile";//DigTile((int)mousePos.x, (int)mousePos.y, digAmount);
     }
 
     public int ReverseDirection(int direction) {

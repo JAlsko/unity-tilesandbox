@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 
-public class CursorController : MonoBehaviour
+public class CursorController : Singleton<CursorController>
 {
     public enum ClickAction {
         Any = -1,
@@ -36,7 +36,7 @@ public class CursorController : MonoBehaviour
     public Transform cursor;
     public Image cursorIcon;
     public Image heldItemIcon;
-    public TextMeshProUGUI heldItemCount;
+    public Text heldItemCount;
 
     public GraphicRaycaster canvasRaycaster;
     public PointerEventData pointerEventData;
@@ -51,6 +51,9 @@ public class CursorController : MonoBehaviour
     public float inventoryActionAcceleration = 0.1f;
     public float inventoryActionMinSpeed = 0.1f;
     public float inventoryActionMaxSpeed = 0.01f;
+    public int itemsPerAction = 1;
+    public float minItemsPerAction = 1;
+    public float maxItemsPerAction = 5;
 
     public float itemActionSpeed = 0.1f;
 
@@ -62,24 +65,33 @@ public class CursorController : MonoBehaviour
 
     private InventorySlotObject selectedInvSlot;
 
+	Vector3 curMousePos;
+    public Transform tileSelectionBox;
+    public int tileSelectionDiameter = 1;
+    public Entity playerEntity;
+    Vector3 adjustedMousePos = Vector3.zero;
+
     public void InitializeCursorControls()
     {
         playerHeldItemLight.enabled = false;
-        selectedInvSlot = UIController.Instance.invSlotObjs[0];
+        selectedInvSlot = UIController.Instance.playerInvSlotObjs[0];
+
+        tileSelectionDiameter = (int)playerEntity.GetFloat("digRadius");
+        tileSelectionBox.localScale = new Vector3(tileSelectionDiameter * 1.125f, tileSelectionDiameter * 1.125f, 1f);
     }
 
     void Update()
     {
         elapsedTime += Time.deltaTime;
         UpdateCursorPos();
-        
+
         if (Mathf.Abs(Input.mouseScrollDelta.y) > minScrollDelta) {
             int oldSelectedHotbarSlot = selectedHotbarSlot;
-            selectedHotbarSlot = (selectedHotbarSlot + (int)(scrollSpeed * Input.mouseScrollDelta.y)) % playerInv.hotbarSize;
+            selectedHotbarSlot = (selectedHotbarSlot - (int)(scrollSpeed * Input.mouseScrollDelta.y)) % playerInv.hotbarSize;
             if (selectedHotbarSlot < 0)
                 selectedHotbarSlot = UIController.Instance.playerInv.hotbarSize-1;
 
-            selectedInvSlot = UIController.Instance.invSlotObjs[selectedHotbarSlot];
+            selectedInvSlot = UIController.Instance.playerInvSlotObjs[selectedHotbarSlot];
 
             UIController.Instance.UnhighlightInvSlot(oldSelectedHotbarSlot);
             UIController.Instance.HighlightInvSlot(selectedHotbarSlot);
@@ -183,6 +195,10 @@ public class CursorController : MonoBehaviour
     }
 
     void UseHotbarItem(InventorySlotObject invSlot) {
+        if (UIController.Instance.HoveringOverUI()) {
+            return;
+        }
+
         ItemObject hotbarItem = invSlot.GetContainedItem();
         if (hotbarItem == null) {
             return;
@@ -195,7 +211,9 @@ public class CursorController : MonoBehaviour
     }
 
     void UseHeldItem() {
-        //Debug.Log(heldItem.name);
+        if (UIController.Instance.HoveringOverUI()) {
+            return;
+        }
 
         heldItem.Use();
         if (heldItem.currentStack <= 0) {
@@ -243,9 +261,9 @@ public class CursorController : MonoBehaviour
     void TakeSingleItem(InventorySlotObject invSlot) {
         IncrementClicks();
         if (heldItem == null) {
-            heldItem = invSlot.TakePartialItem(1);
+            heldItem = invSlot.TakePartialItem(5);
         } else {
-            heldItem = invSlot.TakePartialItem(1, heldItem.currentStack);
+            heldItem = invSlot.TakePartialItem(5, heldItem.currentStack);
         }
         UpdateHeldItemVisuals();
         currentAction = ClickAction.TakeSingleItem;
@@ -260,6 +278,19 @@ public class CursorController : MonoBehaviour
     void UpdateCursorPos() {
         cursorPos = mainCam.ScreenToWorldPoint(Input.mousePosition);
         cursor.position = Input.mousePosition;
+
+        bool oddSelectionSize = tileSelectionDiameter % 2 != 0;
+
+        curMousePos = mainCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -mainCam.transform.position.z));
+
+        if (oddSelectionSize) {
+            curMousePos = SimplifyMousePos(curMousePos);
+            adjustedMousePos = AdjustMousePos(curMousePos, .5f);
+        } else {
+            curMousePos = SimplifyMousePos(curMousePos, .5f);
+            adjustedMousePos = AdjustMousePos(curMousePos, 0);
+        }
+        tileSelectionBox.position = adjustedMousePos;
     }
 
     GameObject CheckHoveredObject(string tag = "InventorySlot") {
@@ -327,6 +358,7 @@ public class CursorController : MonoBehaviour
     void ResetClickSpeed() {
         consecutiveClicks = 0;
         inventoryActionSpeed = inventoryActionMinSpeed;
+        itemsPerAction = (int)minItemsPerAction;
         lastTime = 0;
     }
 
@@ -334,6 +366,27 @@ public class CursorController : MonoBehaviour
         consecutiveClicks++;
         if (consecutiveClicks >= accelerationClickThreshold && inventoryActionSpeed > inventoryActionMaxSpeed) {
             inventoryActionSpeed *= inventoryActionAcceleration;
+            float ipaIncrease = (inventoryActionMinSpeed / inventoryActionMaxSpeed) / (inventoryActionSpeed / inventoryActionMinSpeed);
         }
+    }
+
+    Vector3 SimplifyMousePos(Vector3 mousePos, float offset = 0) {
+        mousePos.x = (int)(mousePos.x + offset);
+        mousePos.y = (int)(mousePos.y + offset);
+        return mousePos;
+    }
+
+    Vector3 AdjustMousePos(Vector3 mousePos, float offset) { 
+        mousePos.x += offset;
+        mousePos.y += offset;
+        return mousePos;
+    }
+
+    public Vector3 GetMousePos() {
+        return curMousePos;
+    }
+
+    public Vector3 GetTileSelectionPos() {
+        return adjustedMousePos;
     }
 }

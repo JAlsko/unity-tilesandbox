@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Entity))]
 public class CharacterMover : MonoBehaviour {
 
-	public float maxSpeed = 10f;
-	public float jumpForce = 100f;
 	Rigidbody2D rbody;
 	Animator anim;
+	Entity ent;
 	bool isAnimated = true;
 
 	void Start () {
@@ -17,6 +17,11 @@ public class CharacterMover : MonoBehaviour {
 			isAnimated = false;
 		else
 			anim = GetComponent<Animator>();
+
+		ent = GetComponent<Entity>();
+		if (!ent.initialized) {
+			this.enabled = false;
+		}
 	}
 	
 	void Update () {
@@ -24,13 +29,15 @@ public class CharacterMover : MonoBehaviour {
 	}
 
 	public void Move(float dir) {
-		rbody.velocity = new Vector2(dir * maxSpeed, rbody.velocity.y);
+		float moveSpeed = ent.GetFloat(EntityManager.Instance.moveSpeedAttributeName);
+		rbody.velocity = new Vector2(dir * moveSpeed, rbody.velocity.y);
 		AnimRun(Mathf.Abs(dir));
 	}
 
 	public void Jump() {
 		rbody.velocity = Vector2.zero;
-		rbody.AddForce(Vector2.up * jumpForce);
+		float jumpSpeed = ent.GetFloat(EntityManager.Instance.jumpHeightAttributeName);
+		rbody.AddForce(Vector2.up * jumpSpeed);
 		AnimJump();
 	}
 

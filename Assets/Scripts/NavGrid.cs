@@ -54,6 +54,18 @@ public class NavGrid : MonoBehaviour
         int x = Mathf.RoundToInt((gridWorldSize.x-1) * percentX);
         int y = Mathf.RoundToInt((gridWorldSize.y-1) * percentY);
 
+        if (x < 0) {
+            x = 0;
+        } else if (x > grid.GetUpperBound(0)) {
+            x = grid.GetUpperBound(0);
+        }
+
+        if (y < 0) {
+            y = 0;
+        } else if (y > grid.GetUpperBound(1)) {
+            y = grid.GetUpperBound(1);
+        }
+
         return grid[x, y];
     }
 
@@ -78,7 +90,7 @@ public class NavGrid : MonoBehaviour
     }
 
     public List<NavNode> path;
-    void OnDrawGizmos() {
+    /* void OnDrawGizmos() {
         Gizmos.DrawWireCube(worldCenter, new Vector3(gridWorldSize.x, gridWorldSize.y, 1));
         
         if (grid != null) {
@@ -92,5 +104,5 @@ public class NavGrid : MonoBehaviour
                 Gizmos.DrawCube(node.worldPos + worldCenter, gizmosCubeSize);
             }
         }
-    }
+    }*/
 }

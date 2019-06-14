@@ -9,20 +9,21 @@ public class PlayerInventory : MonoBehaviour
     public int hotbarSize = 8;
     private int inventorySize;
     private int firstOpenSlot = -1;
-    private ItemObject[] inventory;
     private InventorySlotObject[] invSlots;
+    public Inventory inventory;
     private UIController uic;
-
     private List<int> openSlots = new List<int>();
 
-    void Start() {
+    public void InitializePlayerInventory() {
         inventorySize = backpackSize + hotbarSize;
-        inventory = new ItemObject[inventorySize];
+        inventory = new Inventory(inventorySize);
         Cursor.visible = false;
 
-        for (int i = 0; i < inventory.Length; i++) {
+        for (int i = 0; i < inventorySize; i++) {
             openSlots.Add(i);
         }
+
+        InventoryManager.Instance.AddNewInventory(0, inventory);
     }
 
     public void LinkUI(UIController newUIC, InventorySlotObject[] invSlotObjs) {
@@ -31,12 +32,13 @@ public class PlayerInventory : MonoBehaviour
         invSlots = new InventorySlotObject[inventorySize];
         for (int i = 0; i < inventorySize; i++) {
             invSlots[i] = invSlotObjs[i];
-            invSlots[i].InitializeInventory(this, i);
+            invSlots[i].LinkInventory(inventory, i);
         }
 
         CraftingController.Instance.LinkInventory(this);
 
         AddItem(0, new ItemObject("pickaxe", 1));
+        AddItem(1, new ItemObject("water_bucket", 1));
     }
 
     bool IsValidInvSlot(int invSlot) {
@@ -54,11 +56,11 @@ public class PlayerInventory : MonoBehaviour
     public int GetItemCount(string itemToCount) {
         int total = 0;
 
-        for (int i = 0; i < inventory.Length; i++) {
-            if (inventory[i] == null) {
+        for (int i = 0; i < inventory.inventory.Length; i++) {
+            if (inventory.inventory[i] == null) {
                 continue;
             }
-            total += (inventory[i].name == itemToCount ? inventory[i].currentStack : 0);
+            total += (inventory.inventory[i].name == itemToCount ? inventory.inventory[i].currentStack : 0);
         }
 
         return total;
@@ -76,12 +78,12 @@ public class PlayerInventory : MonoBehaviour
         int amountStillNeeded = countToRemove;
 
         if (removeBackwards) {
-            for (int i = inventory.Length-1; i >= 0; i--) {
-                if (inventory[i] == null) {
+            for (int i = inventory.inventory.Length-1; i >= 0; i--) {
+                if (inventory.inventory[i] == null) {
                     continue;
                 }
 
-                if (inventory[i].name != itemToRemove) {
+                if (inventory.inventory[i].name != itemToRemove) {
                     continue;
                 }
 
@@ -94,8 +96,8 @@ public class PlayerInventory : MonoBehaviour
         } 
         
         else if (!removeBackwards) {
-            for (int i = 0; i < inventory.Length; i++) {
-                if (inventory[i].name != itemToRemove) {
+            for (int i = 0; i < inventory.inventory.Length; i++) {
+                if (inventory.inventory[i].name != itemToRemove) {
                     continue;
                 }
 
@@ -129,14 +131,14 @@ public class PlayerInventory : MonoBehaviour
         }
 
         for (int i = index; i < inventorySize; i++) {
-            if (inventory[i] == null) {
+            if (inventory.inventory[i] == null) {
                 continue;
             }
-            if (inventory[i].name == name) {
-                int addableAmount = Mathf.Min(ItemManager.GetItem(name).maxStackSize - inventory[i].currentStack, currentStack);
-                inventory[i].currentStack += addableAmount;
+            if (inventory.inventory[i].name == name) {
+                int addableAmount = Mathf.Min(ItemManager.GetItem(name).maxStackSize - inventory.inventory[i].currentStack, currentStack);
+                inventory.inventory[i].currentStack += addableAmount;
                 //Debug.Log("Adding " + addableAmount + " to slot " + i);
-                invSlots[i].UpdateItemVisuals(inventory[i]);
+                invSlots[i].UpdateItemVisuals(inventory.inventory[i]);
                 return DistributeNewAddedItem(name, currentStack - addableAmount, i+1);
             }
         }
@@ -174,7 +176,7 @@ public class PlayerInventory : MonoBehaviour
             return;
         }
             
-        inventory[invSlot] = newItem;
+        inventory.inventory[invSlot] = newItem;
         invSlots[invSlot].UpdateItemVisuals(newItem);
 
         openSlots.Remove(invSlot);
@@ -197,7 +199,7 @@ public class PlayerInventory : MonoBehaviour
             return;
         }
 
-        inventory[invSlot] = null;
+        inventory.inventory[invSlot] = null;
         invSlots[invSlot].UpdateItemVisuals(null);
 
         openSlots.Add(invSlot);
@@ -211,20 +213,20 @@ public class PlayerInventory : MonoBehaviour
             return leftOverAmount;
         }
 
-        if (countToRemove >= inventory[invSlot].currentStack) {
+        if (countToRemove >= inventory.inventory[invSlot].currentStack) {
             leftOverAmount = 0;
             RemoveSlotItem(invSlot);
         } else {
-            leftOverAmount -= inventory[invSlot].currentStack;
-            inventory[invSlot].currentStack -= countToRemove;
-            invSlots[invSlot].UpdateItemVisuals(inventory[invSlot]);
+            leftOverAmount -= inventory.inventory[invSlot].currentStack;
+            inventory.inventory[invSlot].currentStack -= countToRemove;
+            invSlots[invSlot].UpdateItemVisuals(inventory.inventory[invSlot]);
         }
         
         return leftOverAmount;
     }
 
     public ItemObject GetContainedItem(int invSlot) {
-        return inventory[invSlot];
+        return inventory.inventory[invSlot];
     }
 
     public ItemObject InsertItemObject(ItemObject newItem, int invSlot, int amountToAdd = -1) {
@@ -237,9 +239,9 @@ public class PlayerInventory : MonoBehaviour
             amountToAdd = newItem.currentStack;
         }
 
-        ItemObject currentItem = inventory[invSlot];
+        ItemObject currentItem = inventory.inventory[invSlot];
         if (currentItem == null) {
-            inventory[invSlot] = newItem;
+            inventory.inventory[invSlot] = newItem;
             openSlots.Remove(invSlot);
             return null;
         }
@@ -259,8 +261,8 @@ public class PlayerInventory : MonoBehaviour
             }
         } 
         else {
-            ItemObject oldItem = inventory[invSlot];
-            inventory[invSlot] = newItem;
+            ItemObject oldItem = inventory.inventory[invSlot];
+            inventory.inventory[invSlot] = newItem;
             return oldItem;
         }
     }
@@ -270,7 +272,7 @@ public class PlayerInventory : MonoBehaviour
             return null;
         }
 
-        ItemObject itemToGive = inventory[invSlot];
+        ItemObject itemToGive = inventory.inventory[invSlot];
         RemoveSlotItem(invSlot);
         return itemToGive;
     }
@@ -280,14 +282,14 @@ public class PlayerInventory : MonoBehaviour
             return null;
         }
 
-        if (inventory[invSlot] == null) {
+        if (inventory.inventory[invSlot] == null) {
             return null;
         }
         
-        int takeableAmount = inventory[invSlot].currentStack >= stackSize ? stackSize : inventory[invSlot].currentStack;
-        ItemObject itemToGive = new ItemObject(inventory[invSlot].name, takeableAmount + currentStackSize);
-        inventory[invSlot].currentStack -= takeableAmount;
-        if (inventory[invSlot].currentStack <= 0) {
+        int takeableAmount = inventory.inventory[invSlot].currentStack >= stackSize ? stackSize : inventory.inventory[invSlot].currentStack;
+        ItemObject itemToGive = new ItemObject(inventory.inventory[invSlot].name, takeableAmount + currentStackSize);
+        inventory.inventory[invSlot].currentStack -= takeableAmount;
+        if (inventory.inventory[invSlot].currentStack <= 0) {
             RemoveSlotItem(invSlot);
         }
         return itemToGive;

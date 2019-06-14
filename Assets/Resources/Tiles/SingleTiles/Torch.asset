@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Torch
   m_EditorClassIdentifier: 
   name: torch
-  tileBase: {fileID: 11400000, guid: 94168d450e6b7564bad28c2d3f9f201f, type: 2}
+  tileBase: {fileID: 11400000, guid: 2f4b884106f4d6d4b8bdbe4d1471b883, type: 2}
   lightStrength: 1
   lightColor: {r: 1, g: 0.9000355, b: 0.3254717, a: 1}
   maxTileHealth: 1
